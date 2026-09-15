@@ -8,4 +8,5 @@ coverage/
 *.log
 postgres-data/
 uploads/
+.codex/
 
