@@ -1,0 +1,263 @@
+generator cliente {
+  provider = "prisma-client-js"
+}
+
+datasource baseDeDatos {
+  provider = "postgresql"
+}
+
+enum TipoUnidadOrganizativa {
+  AREA
+  DIVISION
+  DEPARTAMENTO
+  SECTOR
+}
+
+enum TipoResponsabilidadRaci {
+  R
+  A
+  C
+  I
+}
+
+model Organizacion {
+  id             String               @id @default(uuid())
+  nombre         String
+  unidades       UnidadOrganizativa[]
+  politicas      Politica[]
+  evidencias     Evidencia[]
+  planes         Plan[]
+  procedimientos Procedimiento[]
+
+  @@map("organizaciones")
+}
+
+model UnidadOrganizativa {
+  id             String                 @id @default(uuid())
+  organizacionId String
+  unidadPadreId  String?
+  tipo           TipoUnidadOrganizativa
+  nombre         String
+
+  organizacion  Organizacion         @relation(fields: [organizacionId], references: [id])
+  unidadPadre   UnidadOrganizativa?  @relation("JerarquiaUnidades", fields: [unidadPadreId], references: [id])
+  unidadesHijas UnidadOrganizativa[] @relation("JerarquiaUnidades")
+  trabajadores  Trabajador[]
+  activos       Activo[]
+
+  @@index([organizacionId])
+  @@index([unidadPadreId])
+  @@map("unidades_organizativas")
+}
+
+model Trabajador {
+  id                   String  @id @default(uuid())
+  unidadOrganizativaId String
+  nombre               String
+  cargo                String
+  correo               String?
+
+  unidadOrganizativa          UnidadOrganizativa @relation(fields: [unidadOrganizativaId], references: [id])
+  asignacionesRaci            AsignacionRaci[]
+  vulnerabilidadesResponsable Vulnerabilidad[]   @relation("ResponsableVulnerabilidad")
+  riesgosResponsable          Riesgo[]           @relation("ResponsableRiesgo")
+  incidentesResponsable       Incidente[]        @relation("ResponsableIncidente")
+  politicasResponsable        Politica[]         @relation("ResponsablePolitica")
+  evidenciasResponsable       Evidencia[]        @relation("ResponsableEvidencia")
+  planesResponsable           Plan[]             @relation("ResponsablePlan")
+  procedimientosResponsable   Procedimiento[]    @relation("ResponsableProcedimiento")
+  activosResponsable          Activo[]           @relation("ResponsableActivo")
+
+  @@index([unidadOrganizativaId])
+  @@map("trabajadores")
+}
+
+model Politica {
+  id             String    @id @default(uuid())
+  organizacionId String
+  responsableId  String?
+  titulo         String
+  descripcion    String?
+  version        String    @default("1.0")
+  estado         String    @default("BORRADOR")
+  fechaRevision  DateTime?
+
+  organizacion   Organizacion    @relation(fields: [organizacionId], references: [id])
+  responsable    Trabajador?     @relation("ResponsablePolitica", fields: [responsableId], references: [id])
+  evidencias     Evidencia[]
+  procedimientos Procedimiento[]
+
+  @@index([organizacionId])
+  @@index([responsableId])
+  @@map("politicas")
+}
+
+model Activo {
+  id                   String  @id @default(uuid())
+  nombre               String
+  descripcion          String?
+  tipo                 String
+  criticidad           String  @default("MEDIA")
+  unidadOrganizativaId String
+  responsableId        String?
+
+  unidadOrganizativa UnidadOrganizativa @relation(fields: [unidadOrganizativaId], references: [id])
+  responsable        Trabajador?        @relation("ResponsableActivo", fields: [responsableId], references: [id])
+  vulnerabilidades   Vulnerabilidad[]
+  riesgos            Riesgo[]
+  incidentes         Incidente[]
+
+  @@index([unidadOrganizativaId])
+  @@index([responsableId])
+  @@map("activos")
+}
+
+model Vulnerabilidad {
+  id            String      @id @default(uuid())
+  activoId      String
+  nombre        String
+  descripcion   String?
+  cvss          Float?
+  estado        String      @default("ABIERTA")
+  responsableId String?
+  activo        Activo      @relation(fields: [activoId], references: [id])
+  responsable   Trabajador? @relation("ResponsableVulnerabilidad", fields: [responsableId], references: [id])
+  evidencias    Evidencia[]
+
+  @@index([activoId])
+  @@index([responsableId])
+  @@map("vulnerabilidades")
+}
+
+model Riesgo {
+  id            String      @id @default(uuid())
+  activoId      String
+  nombre        String
+  descripcion   String?
+  probabilidad  String
+  impacto       String
+  estado        String      @default("ABIERTO")
+  responsableId String?
+  activo        Activo      @relation(fields: [activoId], references: [id])
+  responsable   Trabajador? @relation("ResponsableRiesgo", fields: [responsableId], references: [id])
+  evidencias    Evidencia[]
+  planes        Plan[]
+
+  @@index([activoId])
+  @@index([responsableId])
+  @@map("riesgos")
+}
+
+model Incidente {
+  id            String      @id @default(uuid())
+  activoId      String
+  titulo        String
+  descripcion   String?
+  severidad     String
+  estado        String      @default("ABIERTO")
+  responsableId String?
+  activo        Activo      @relation(fields: [activoId], references: [id])
+  responsable   Trabajador? @relation("ResponsableIncidente", fields: [responsableId], references: [id])
+  evidencias    Evidencia[]
+
+  @@index([activoId])
+  @@index([responsableId])
+  @@map("incidentes")
+}
+
+model Proceso {
+  id               String           @id @default(uuid())
+  nombre           String
+  descripcion      String?
+  estado           String           @default("ACTIVO")
+  asignacionesRaci AsignacionRaci[]
+
+  @@map("procesos")
+}
+
+model Evidencia {
+  id               String   @id @default(uuid())
+  organizacionId   String
+  responsableId    String?
+  nombre           String
+  descripcion      String?
+  tipo             String
+  ubicacion        String?
+  politicaId       String?
+  riesgoId         String?
+  vulnerabilidadId String?
+  incidenteId      String?
+  fechaRegistro    DateTime @default(now())
+
+  organizacion   Organizacion    @relation(fields: [organizacionId], references: [id])
+  responsable    Trabajador?     @relation("ResponsableEvidencia", fields: [responsableId], references: [id])
+  politica       Politica?       @relation(fields: [politicaId], references: [id])
+  riesgo         Riesgo?         @relation(fields: [riesgoId], references: [id])
+  vulnerabilidad Vulnerabilidad? @relation(fields: [vulnerabilidadId], references: [id])
+  incidente      Incidente?      @relation(fields: [incidenteId], references: [id])
+
+  @@index([organizacionId])
+  @@index([responsableId])
+  @@index([politicaId])
+  @@index([riesgoId])
+  @@index([vulnerabilidadId])
+  @@index([incidenteId])
+  @@map("evidencias")
+}
+
+model Plan {
+  id             String    @id @default(uuid())
+  organizacionId String
+  responsableId  String?
+  riesgoId       String?
+  nombre         String
+  descripcion    String?
+  tipo           String
+  fechaInicio    DateTime?
+  fechaFin       DateTime?
+  estado         String    @default("PENDIENTE")
+
+  organizacion Organizacion @relation(fields: [organizacionId], references: [id])
+  responsable  Trabajador?  @relation("ResponsablePlan", fields: [responsableId], references: [id])
+  riesgo       Riesgo?      @relation(fields: [riesgoId], references: [id])
+
+  @@index([organizacionId])
+  @@index([responsableId])
+  @@index([riesgoId])
+  @@map("planes")
+}
+
+model Procedimiento {
+  id             String  @id @default(uuid())
+  organizacionId String
+  politicaId     String
+  responsableId  String?
+  nombre         String
+  descripcion    String?
+  version        String  @default("1.0")
+  estado         String  @default("BORRADOR")
+
+  organizacion Organizacion @relation(fields: [organizacionId], references: [id])
+  politica     Politica     @relation(fields: [politicaId], references: [id])
+  responsable  Trabajador?  @relation("ResponsableProcedimiento", fields: [responsableId], references: [id])
+
+  @@index([organizacionId])
+  @@index([politicaId])
+  @@index([responsableId])
+  @@map("procedimientos")
+}
+
+model AsignacionRaci {
+  id                  String                  @id @default(uuid())
+  procesoId           String
+  trabajadorId        String
+  tipoResponsabilidad TipoResponsabilidadRaci
+
+  proceso    Proceso    @relation(fields: [procesoId], references: [id])
+  trabajador Trabajador @relation(fields: [trabajadorId], references: [id])
+
+  @@unique([procesoId, trabajadorId, tipoResponsabilidad])
+  @@index([procesoId])
+  @@index([trabajadorId])
+  @@map("asignaciones_raci")
+}
