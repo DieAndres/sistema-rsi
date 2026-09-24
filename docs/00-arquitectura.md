@@ -31,7 +31,6 @@ flowchart LR
 
 - Los usuarios interactúan con el sistema desde un navegador.
 - El sistema RSI concentra la lógica de gestión y cumplimiento.
-- Wazuh se considera un sistema externo porque Persona 2 gestionará su integración técnica.
 
 ## C4 — Diagrama de contenedores
 

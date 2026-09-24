@@ -136,6 +136,174 @@ La API usará REST, JSON y el prefijo `/api/v1`.
 
 Formato de error común: `codigoEstado`, `codigo`, `mensaje` y `detalles` opcional. Las fechas usarán ISO 8601. Los nombres de entidades, campos, módulos y endpoints estarán en español para mantener una implementación coherente con la documentación y la interfaz.
 
+### Estructura común de módulos, endpoints y DTOs
+
+Para mantener una implementación uniforme, cada funcionalidad se organizará por **módulo** y **recurso**. La estructura interna del backend debe reflejar la misma separación que las rutas de la API.
+
+#### Regla de endpoints
+
+Todas las rutas públicas usarán el prefijo `/api/v1`, el nombre del módulo en español y el recurso en plural:
+
+```text
+/api/v1/<modulo>/<recurso>
+```
+
+Ejemplos:
+
+```text
+/api/v1/organizaciones
+/api/v1/organizaciones/unidades
+/api/v1/organizaciones/trabajadores
+/api/v1/seguridad/activos
+/api/v1/seguridad/vulnerabilidades
+/api/v1/seguridad/riesgos
+/api/v1/seguridad/incidentes
+/api/v1/cumplimiento/politicas
+```
+
+Para recursos relacionados se podrá usar el identificador del recurso padre:
+
+```text
+POST /api/v1/organizaciones/:organizacionId/unidades
+POST /api/v1/seguridad/unidades/:unidadId/activos
+```
+
+Las operaciones CRUD seguirán siempre este patrón:
+
+| Método | Ruta | Uso |
+|---|---|---|
+| `GET` | `/api/v1/<modulo>/<recurso>` | Listar. |
+| `GET` | `/api/v1/<modulo>/<recurso>/:id` | Consultar uno. |
+| `POST` | `/api/v1/<modulo>/<recurso>` | Crear. |
+| `PATCH` | `/api/v1/<modulo>/<recurso>/:id` | Actualizar parcialmente. |
+| `DELETE` | `/api/v1/<modulo>/<recurso>/:id` | Eliminar o desactivar. |
+
+#### Regla de carpetas
+
+Cada módulo tendrá su propio directorio. Dentro se agruparán el controlador, servicio, módulo y DTOs del recurso:
+
+Regla obligatoria: ningún controlador de un módulo debe contener endpoints de otro módulo. La lógica de negocio también debe permanecer en el servicio del módulo correspondiente; los módulos pueden compartir únicamente servicios transversales, como Prisma, auditoría o identidad.
+
+```text
+backend/src/
+├── organizacion/
+│   ├── organizacion.module.ts
+│   ├── organizacion.controller.ts
+│   ├── organizacion.service.ts
+│   └── dto/
+│       └── organizacion/
+│           ├── crear-organizacion.dto.ts
+│           └── actualizar-organizacion.dto.ts
+├── seguridad/
+│   ├── seguridad.module.ts
+│   ├── seguridad.controller.ts
+│   ├── seguridad.service.ts
+│   └── dto/
+│       ├── activo/
+│       ├── vulnerabilidad/
+│       ├── riesgo/
+│       └── incidente/
+└── cumplimiento/
+    ├── cumplimiento.module.ts
+    ├── cumplimiento.controller.ts
+    ├── cumplimiento.service.ts
+    └── dto/
+        └── politica/
+```
+
+#### Regla de DTOs
+
+Cada endpoint `POST` recibirá un **DTO de creación** específico para la entidad. El DTO define únicamente los datos que el cliente puede enviar para crear el registro; no incluye el `id`, las relaciones calculadas ni campos internos generados por el sistema.
+
+Los DTO se organizarán dentro del módulo y recurso correspondiente:
+
+```text
+seguridad/dto/
+├── activo/
+│   ├── crear-activo.dto.ts
+│   └── actualizar-activo.dto.ts
+└── riesgo/
+    ├── crear-riesgo.dto.ts
+    └── actualizar-riesgo.dto.ts
+```
+
+El flujo será: `Controller → DTO → Service → Prisma`. El controlador recibe el JSON, el DTO define su forma, el servicio valida reglas de negocio y Prisma persiste los datos. Los identificadores y valores automáticos los genera el backend o la base de datos.
+
+### Relaciones de planes y evidencias
+
+`Plan` representa una acción planificada para tratar una situación de seguridad o cumplimiento. Pertenece a una organización y puede tener un trabajador responsable y un riesgo asociado.
+
+```text
+Organización
+└── Plan
+    ├── Responsable: Trabajador opcional
+    └── Riesgo asociado: opcional
+```
+
+`Evidencia` representa un respaldo documental o registro que demuestra que una actividad fue realizada o que un control existe. Pertenece a una organización y puede asociarse a una política, riesgo, vulnerabilidad o incidente.
+
+```text
+Organización
+└── Evidencia
+    ├── Responsable: Trabajador opcional
+    ├── Política asociada: opcional
+    ├── Riesgo asociado: opcional
+    ├── Vulnerabilidad asociada: opcional
+    └── Incidente asociado: opcional
+```
+
+Ejemplo: una captura de pantalla de una revisión puede registrarse como evidencia de un incidente. La evidencia guarda la referencia y los metadatos, pero los archivos físicos se gestionarán posteriormente mediante almacenamiento configurado para el proyecto.
+
+Endpoints acordados:
+
+```text
+/api/v1/cumplimiento/planes/:organizacionId
+/api/v1/cumplimiento/evidencias/:organizacionId
+```
+
+### Relación entre políticas y procedimientos
+
+Una `Política` establece una regla o directriz general de seguridad. Un `Procedimiento` describe los pasos concretos para aplicar esa política.
+
+```text
+Organización
+└── Política
+    └── Procedimientos
+```
+
+Cada procedimiento debe pertenecer a una política existente de la misma organización. La relación se guarda mediante `procedimiento.politicaId`.
+
+### Validación de relaciones
+
+Los servicios deben validar las referencias antes de guardar los datos. No alcanza con recibir un ID: el registro relacionado debe existir y, cuando corresponda, pertenecer a la misma organización.
+
+| Entidad | Relación | Regla |
+|---|---|---|
+| `Procedimiento` | `politicaId` | Obligatoria; la política debe existir y pertenecer a la organización indicada. |
+| `Plan` | `responsableId` | Opcional; si se informa, el trabajador debe existir. |
+| `Plan` | `riesgoId` | Opcional; si se informa, el riesgo debe existir. |
+| `Evidencia` | `responsableId` | Opcional; si se informa, el trabajador debe existir. |
+| `Evidencia` | `politicaId` | Opcional; si se informa, la política debe existir. |
+| `Evidencia` | `riesgoId` | Opcional; si se informa, el riesgo debe existir. |
+| `Evidencia` | `vulnerabilidadId` | Opcional; si se informa, la vulnerabilidad debe existir. |
+| `Evidencia` | `incidenteId` | Opcional; si se informa, el incidente debe existir. |
+
+Si una referencia no existe, el endpoint debe responder con `400 Bad Request` y un mensaje comprensible. Esta validación evita datos huérfanos y mantiene la trazabilidad del sistema.
+
+Ejemplo:
+
+```text
+Política: Política de gestión de vulnerabilidades
+Procedimiento: Procedimiento de revisión de vulnerabilidades
+```
+
+Endpoints definitivos:
+
+```text
+/api/v1/cumplimiento/politicas
+/api/v1/cumplimiento/procedimientos
+```
+
 ## 8. Repositorio y Git
 
 ```text
