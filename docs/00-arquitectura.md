@@ -1,8 +1,20 @@
 # Arquitectura del sistema
 
+## Control del documento
+
+| Campo | Valor |
+|---|---|
+| Código | ARQ-C4-02 |
+| Versión | 1.0 |
+| Fecha | 24/09/2026 |
+| Metodología | C4 |
+| Estado | En construcción |
+
 ## C4 — Diagrama de contexto
 
-El sistema será utilizado por distintos perfiles de la organización para gestionar seguridad de la información, activos, riesgos, incidentes y cumplimiento.
+El Sistema RSI está construido actualmente como una API backend con PostgreSQL.
+Los perfiles que se muestran son actores previstos para la solución; la
+autenticación y la interfaz web todavía están pendientes.
 
 ```mermaid
 flowchart LR
@@ -11,26 +23,21 @@ flowchart LR
     Dueño[Dueño de unidad<br/>Gestiona información de su unidad]
     Lector[Lector<br/>Consulta información autorizada]
     Sistema[Sistema de Gestión Integrada para el RSI<br/>Organización, activos, riesgos, incidentes y cumplimiento]
-    Wazuh[Wazuh<br/>Analiza eventos y logs de seguridad]
-
     RSI --> Sistema
     Admin --> Sistema
     Dueño --> Sistema
     Lector --> Sistema
-    Sistema -->|Envía eventos y logs| Wazuh
 
     classDef actor fill:#2563eb,color:#fff,stroke:#1e40af
     classDef system fill:#16a34a,color:#fff,stroke:#15803d
-    classDef external fill:#e5e7eb,color:#111827,stroke:#9ca3af
     class RSI,Admin,Dueño,Lector actor
     class Sistema system
-    class Wazuh external
 ```
 
 ### Alcance del diagrama
 
-- Los usuarios interactúan con el sistema desde un navegador.
-- El sistema RSI concentra la lógica de gestión y cumplimiento.
+- El sistema concentra la lógica de gestión y cumplimiento en una API REST.
+- La interfaz de navegador está prevista, pero no está implementada aún.
 
 ## C4 — Diagrama de contenedores
 
@@ -41,37 +48,61 @@ flowchart LR
     Usuario[Usuario]
 
     subgraph Sistema[ Sistema de Gestión Integrada para el RSI ]
-        Frontend[Frontend web<br/>React + Vite + TypeScript]
         Backend[Backend API<br/>NestJS + TypeScript]
-        Exportador[Exportador de documentos<br/>Módulo del backend]
         BD[(Base de datos<br/>PostgreSQL + Prisma)]
     end
 
-    Wazuh[Wazuh<br/>SIEM]
+    Usuario[Cliente HTTP / herramienta de pruebas] -->|JSON / REST| Backend
+    Backend -->|Prisma / PostgreSQL| BD
 
-    Usuario -->|HTTPS| Frontend
-    Frontend -->|JSON / REST| Backend
-    Backend -->|Lee y escribe| BD
-    Backend -->|Solicita informes| Exportador
-    Backend -->|Envía eventos y logs| Wazuh
-
-    classDef user fill:#2563eb,color:#fff,stroke:#1e40af
     classDef app fill:#dbeafe,color:#111827,stroke:#60a5fa
     classDef data fill:#fef3c7,color:#111827,stroke:#f59e0b
-    classDef external fill:#e5e7eb,color:#111827,stroke:#9ca3af
-    class Usuario user
-    class Frontend,Backend,Exportador app
+    class Backend app
     class BD data
-    class Wazuh external
 ```
 
 ### Lectura simple del flujo
 
-1. El usuario entra a la aplicación mediante el **frontend**.
-2. El frontend solicita información al **backend**.
-3. El backend aplica la lógica del sistema y consulta **PostgreSQL**.
-4. Cuando se solicita un informe, el backend utiliza el **exportador**.
-5. Las acciones relevantes generan eventos que se envían a **Wazuh**.
+1. Un cliente HTTP invoca una ruta REST bajo `/api/v1`.
+2. El backend aplica la lógica del módulo correspondiente.
+3. Prisma consulta o modifica los datos en PostgreSQL.
+4. La API devuelve una respuesta JSON al cliente.
+
+## C4 — Diagrama de componentes
+
+El backend se organiza como un monolito modular. Cada módulo concentra sus
+controladores, servicios y DTOs, y utiliza Prisma para acceder a PostgreSQL.
+
+| Componente | Responsabilidad | Estado |
+|---|---|---|
+| Organización | Organizaciones, unidades, trabajadores, procesos y RACI | Implementado |
+| Seguridad | Activos, riesgos, vulnerabilidades e incidentes | Implementado |
+| Cumplimiento | Políticas, procedimientos, planes y evidencias | Implementado |
+| KPI | Consulta agregada de indicadores operativos | Implementado, versión básica |
+| Prisma | Persistencia y migraciones de PostgreSQL | Implementado |
+| Docker Compose | Ejecución local de PostgreSQL y volumen persistente | Implementado; sin respaldo automático |
+| Documentación de seguridad | Política, procedimientos de incidentes y vulnerabilidades, plan de continuidad | Redactados; requieren validación/aprobación operativa |
+| Exportadores | Generación de documentos MCU, BCU, ISO, URCDP y COBIT | Pendiente |
+| Autenticación y auditoría | Identidad, permisos y trazabilidad | Pendiente |
+| Frontend y dashboard | Interfaz web y visualización de KPI | Pendiente |
+| SIEM | Recepción y análisis centralizado de logs | Pendiente |
+
+## C4 — Diagrama de código
+
+Los archivos principales de los módulos implementados son:
+
+| Componente | Archivos principales |
+|---|---|
+| Organización | `backend/src/organizacion/organizacion.controller.ts`, `organizacion.service.ts` |
+| Seguridad | `backend/src/seguridad/seguridad.controller.ts`, `seguridad.service.ts` |
+| Cumplimiento | `backend/src/cumplimiento/cumplimiento.controller.ts`, `cumplimiento.service.ts` |
+| KPI | `backend/src/kpi/kpi.controller.ts`, `kpi.service.ts` |
+| Persistencia | `backend/prisma/schema.prisma`, `backend/src/prisma/prisma.service.ts` |
+
+Los módulos de seguridad incluyen activos, riesgos, vulnerabilidades e
+incidentes. El módulo de cumplimiento incluye políticas, procedimientos,
+planes y evidencias. Los documentos asociados describen procesos previstos y
+no implican que los controles técnicos correspondientes ya estén desplegados.
 
 ## Modelo entidad-relación
 
@@ -88,12 +119,11 @@ erDiagram
     TRABAJADOR ||--o{ ACTIVO : responsable_de
     ACTIVO ||--o{ RIESGO : afectado_por
     TRABAJADOR ||--o{ RIESGO : responsable_de
-    RIESGO ||--o{ PLAN_TRATAMIENTO : tratado_por
+    RIESGO ||--o{ PLAN : asociado_a
     ACTIVO ||--o{ VULNERABILIDAD : contiene
     TRABAJADOR ||--o{ VULNERABILIDAD : responsable_de
     ACTIVO ||--o{ INCIDENTE : involucrado_en
     TRABAJADOR ||--o{ INCIDENTE : responsable_de
-    INCIDENTE ||--o{ LECCION_APRENDIDA : produce
     POLITICA ||--o{ EVIDENCIA : respaldada_por
     RIESGO ||--o{ EVIDENCIA : respaldado_por
     INCIDENTE ||--o{ EVIDENCIA : respaldado_por
@@ -137,12 +167,8 @@ erDiagram
         uuid activo_id FK
         uuid trabajador_responsable_id FK
         string tratamiento
-        string estado
-    }
-    PLAN_TRATAMIENTO {
-        uuid id PK
-        uuid riesgo_id FK
-        date fecha_limite
+        string riesgo_residual
+        boolean aceptado
         string estado
     }
     VULNERABILIDAD {
@@ -150,6 +176,8 @@ erDiagram
         uuid activo_id FK
         uuid trabajador_responsable_id FK
         decimal cvss
+        integer sla
+        string plan_remediacion
         string estado
     }
     INCIDENTE {
@@ -157,22 +185,65 @@ erDiagram
         uuid activo_id FK
         uuid trabajador_responsable_id FK
         string estado
-    }
-    LECCION_APRENDIDA {
-        uuid id PK
-        uuid incidente_id FK
-        string descripcion
+        string lecciones_aprendidas
     }
     POLITICA {
         uuid id PK
+        uuid organizacion_id FK
+        uuid trabajador_responsable_id FK
         string titulo
+        string version
+        string estado
+    }
+    PROCEDIMIENTO {
+        uuid id PK
+        uuid organizacion_id FK
+        uuid politica_id FK
+        uuid trabajador_responsable_id FK
+        string nombre
         string version
         string estado
     }
     EVIDENCIA {
         uuid id PK
-        string tipo_entidad
-        uuid entidad_id
+        uuid organizacion_id FK
+        uuid politica_id FK
+        uuid riesgo_id FK
+        uuid vulnerabilidad_id FK
+        uuid incidente_id FK
         string ubicacion
     }
+
+    PLAN {
+        uuid id PK
+        uuid organizacion_id FK
+        uuid riesgo_id FK
+        uuid trabajador_responsable_id FK
+        string tipo
+        date fecha_inicio
+        date fecha_fin
+        string estado
+    }
 ```
+
+## Estado de la arquitectura
+
+### Implementado
+
+- Backend NestJS con API REST versionada en `/api/v1`.
+- PostgreSQL con Prisma y migraciones.
+- Módulos de organización, seguridad y cumplimiento.
+- Endpoint básico de KPI: `GET /api/v1/kpis/resumen`.
+- Ejecución local de PostgreSQL mediante Docker Compose.
+- Volumen persistente local para los datos de PostgreSQL.
+- Documentación inicial de política de seguridad, gestión de incidentes,
+  gestión de vulnerabilidades y continuidad.
+
+### Planificado o pendiente
+
+- Frontend React + Vite.
+- Exportadores de documentos.
+- Autenticación, roles, permisos y auditoría.
+- Integración con Wazuh.
+- Dashboard visual de KPI.
+- Respaldos automáticos, copia externa y prueba documentada de restauración.
