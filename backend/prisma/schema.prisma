@@ -118,6 +118,8 @@ model Vulnerabilidad {
   nombre        String
   descripcion   String?
   cvss          Float?
+  sla           Int?
+  planRemediacion String?
   estado        String      @default("ABIERTA")
   responsableId String?
   activo        Activo      @relation(fields: [activoId], references: [id])
@@ -136,6 +138,9 @@ model Riesgo {
   descripcion   String?
   probabilidad  String
   impacto       String
+  tratamiento   String?
+  riesgoResidual String?
+  aceptado      Boolean     @default(false)
   estado        String      @default("ABIERTO")
   responsableId String?
   activo        Activo      @relation(fields: [activoId], references: [id])
@@ -155,6 +160,7 @@ model Incidente {
   descripcion   String?
   severidad     String
   estado        String      @default("ABIERTO")
+  leccionesAprendidas String?
   responsableId String?
   activo        Activo      @relation(fields: [activoId], references: [id])
   responsable   Trabajador? @relation("ResponsableIncidente", fields: [responsableId], references: [id])

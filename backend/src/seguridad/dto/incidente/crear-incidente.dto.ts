@@ -7,5 +7,9 @@ export class CrearIncidenteDto {
 
   severidad!: string;
 
+  estado?: string;
+
+  leccionesAprendidas?: string;
+
   responsableId?: string;
 }

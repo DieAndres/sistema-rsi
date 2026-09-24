@@ -44,11 +44,17 @@ describe('Incidentes (e2e)', () => {
         responsableId,
         titulo: 'Interrupción del servicio',
         severidad: 'ALTA',
+        estado: 'RECUPERADO',
+        leccionesAprendidas: 'Mejorar el monitoreo del servicio',
       })
       .expect(201);
 
     expect(respuesta.body.activoId).toBe(activoId);
     expect(respuesta.body.responsableId).toBe(responsableId);
+    expect(respuesta.body.estado).toBe('RECUPERADO');
+    expect(respuesta.body.leccionesAprendidas).toBe(
+      'Mejorar el monitoreo del servicio',
+    );
   });
 
   it('rechaza un incidente con activo inexistente', async () => {

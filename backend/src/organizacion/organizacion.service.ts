@@ -477,6 +477,7 @@ export class OrganizacionService {
   async crearVulnerabilidad(d: CrearVulnerabilidadDto) {
     const nombre = d.nombre?.trim();
     if (!nombre) throw new BadRequestException('El nombre es obligatorio');
+    this.validarSla(d.sla);
     await this.validarActivoYResponsable(d.activoId, d.responsableId);
     return this.prisma.vulnerabilidad.create({
       data: {
@@ -484,14 +485,20 @@ export class OrganizacionService {
         nombre,
         descripcion: d.descripcion?.trim() || null,
         cvss: d.cvss,
+        sla: d.sla ?? null,
+        planRemediacion: d.planRemediacion?.trim() || null,
         responsableId: d.responsableId,
       },
       include: { activo: true, responsable: true },
     });
   }
 
-  listarVulnerabilidades() {
+  listarVulnerabilidades(estado?: string, cvssMin?: string) {
     return this.prisma.vulnerabilidad.findMany({
+      where: {
+        ...(estado ? { estado } : {}),
+        ...(cvssMin !== undefined ? { cvss: { gte: Number(cvssMin) } } : {}),
+      },
       include: { activo: true, responsable: true },
       orderBy: { nombre: 'asc' },
     });
@@ -511,6 +518,12 @@ export class OrganizacionService {
     if (d.descripcion !== undefined)
       datosActualizados.descripcion = d.descripcion.trim() || null;
     if (d.cvss !== undefined) datosActualizados.cvss = d.cvss;
+    if (d.sla !== undefined) {
+      this.validarSla(d.sla);
+      datosActualizados.sla = d.sla;
+    }
+    if (d.planRemediacion !== undefined)
+      datosActualizados.planRemediacion = d.planRemediacion?.trim() || null;
     if (d.estado !== undefined) datosActualizados.estado = d.estado.trim();
     if (d.responsableId !== undefined)
       datosActualizados.responsableId = d.responsableId || null;
@@ -532,6 +545,7 @@ export class OrganizacionService {
       throw new BadRequestException(
         'Nombre, probabilidad e impacto son obligatorios',
       );
+    const tratamiento = this.validarTratamiento(d.tratamiento);
     await this.validarActivoYResponsable(d.activoId, d.responsableId);
     return this.prisma.riesgo.create({
       data: {
@@ -540,14 +554,18 @@ export class OrganizacionService {
         descripcion: d.descripcion?.trim() || null,
         probabilidad: d.probabilidad.trim(),
         impacto: d.impacto.trim(),
+        tratamiento,
+        riesgoResidual: d.riesgoResidual?.trim() || null,
+        aceptado: d.aceptado ?? false,
         responsableId: d.responsableId,
       },
       include: { activo: true, responsable: true },
     });
   }
 
-  listarRiesgos() {
+  listarRiesgos(estado?: string) {
     return this.prisma.riesgo.findMany({
+      where: estado ? { estado } : undefined,
       include: { activo: true, responsable: true },
       orderBy: { nombre: 'asc' },
     });
@@ -569,6 +587,11 @@ export class OrganizacionService {
     if (d.probabilidad !== undefined)
       datosActualizados.probabilidad = d.probabilidad.trim();
     if (d.impacto !== undefined) datosActualizados.impacto = d.impacto.trim();
+    if (d.tratamiento !== undefined)
+      datosActualizados.tratamiento = this.validarTratamiento(d.tratamiento);
+    if (d.riesgoResidual !== undefined)
+      datosActualizados.riesgoResidual = d.riesgoResidual?.trim() || null;
+    if (d.aceptado !== undefined) datosActualizados.aceptado = d.aceptado;
     if (d.estado !== undefined) datosActualizados.estado = d.estado.trim();
     if (d.responsableId !== undefined)
       datosActualizados.responsableId = d.responsableId || null;
@@ -584,6 +607,35 @@ export class OrganizacionService {
     return this.prisma.riesgo.delete({ where: { id } });
   }
 
+  private validarTratamiento(tratamiento?: string | null): string | null {
+    if (!tratamiento?.trim()) {
+      return null;
+    }
+
+    const valor = tratamiento.trim().toUpperCase();
+    const permitidos = ['MITIGAR', 'TRANSFERIR', 'EVITAR', 'ACEPTAR'];
+
+    if (!permitidos.includes(valor)) {
+      throw new BadRequestException(
+        'El tratamiento debe ser MITIGAR, TRANSFERIR, EVITAR o ACEPTAR',
+      );
+    }
+
+    return valor;
+  }
+
+  private validarSla(sla?: number | null): void {
+    if (
+      sla !== undefined &&
+      sla !== null &&
+      (!Number.isInteger(sla) || sla < 0)
+    ) {
+      throw new BadRequestException(
+        'El SLA debe ser un número entero mayor o igual a cero',
+      );
+    }
+  }
+
   async crearIncidente(d: CrearIncidenteDto) {
     const titulo = d.titulo?.trim();
     if (!titulo || !d.severidad?.trim())
@@ -595,14 +647,20 @@ export class OrganizacionService {
         titulo,
         descripcion: d.descripcion?.trim() || null,
         severidad: d.severidad.trim(),
+        estado: d.estado?.trim() || 'ABIERTO',
+        leccionesAprendidas: d.leccionesAprendidas?.trim() || null,
         responsableId: d.responsableId,
       },
       include: { activo: true, responsable: true },
     });
   }
 
-  listarIncidentes() {
+  listarIncidentes(estado?: string, severidad?: string) {
     return this.prisma.incidente.findMany({
+      where: {
+        ...(estado ? { estado } : {}),
+        ...(severidad ? { severidad } : {}),
+      },
       include: { activo: true, responsable: true },
       orderBy: { titulo: 'asc' },
     });
@@ -624,6 +682,9 @@ export class OrganizacionService {
     if (d.severidad !== undefined)
       datosActualizados.severidad = d.severidad.trim();
     if (d.estado !== undefined) datosActualizados.estado = d.estado.trim();
+    if (d.leccionesAprendidas !== undefined)
+      datosActualizados.leccionesAprendidas =
+        d.leccionesAprendidas?.trim() || null;
     if (d.responsableId !== undefined)
       datosActualizados.responsableId = d.responsableId || null;
 
@@ -670,8 +731,9 @@ export class OrganizacionService {
     });
   }
 
-  listarActivos() {
+  listarActivos(unidadId?: string) {
     return this.prisma.activo.findMany({
+      where: unidadId ? { unidadOrganizativaId: unidadId } : undefined,
       include: { unidadOrganizativa: true, responsable: true },
       orderBy: { nombre: 'asc' },
     });

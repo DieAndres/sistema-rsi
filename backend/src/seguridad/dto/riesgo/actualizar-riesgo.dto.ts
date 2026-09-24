@@ -7,6 +7,12 @@ export class ActualizarRiesgoDto {
 
   impacto?: string;
 
+  tratamiento?: string | null;
+
+  riesgoResidual?: string | null;
+
+  aceptado?: boolean;
+
   estado?: string;
 
   responsableId?: string;

@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { SeguridadService } from './seguridad.service';
 import { CrearActivoDto } from './dto/activo/crear-activo.dto';
@@ -29,8 +30,8 @@ export class SeguridadController {
     return this.service.crearActivo(id, d);
   }
 
-  @Get('activos') listarActivos() {
-    return this.service.listarActivos();
+  @Get('activos') listarActivos(@Query('unidadId') unidadId?: string) {
+    return this.service.listarActivos(unidadId);
   }
 
   @Get('activos/:id') async consultarActivo(@Param('id') id: string) {
@@ -56,8 +57,11 @@ export class SeguridadController {
     return this.service.crearVulnerabilidad(d);
   }
 
-  @Get('vulnerabilidades') listarVulnerabilidades() {
-    return this.service.listarVulnerabilidades();
+  @Get('vulnerabilidades') listarVulnerabilidades(
+    @Query('estado') estado?: string,
+    @Query('cvssMin') cvssMin?: string,
+  ) {
+    return this.service.listarVulnerabilidades(estado, cvssMin);
   }
 
   @Get('vulnerabilidades/:id') consultarVulnerabilidad(
@@ -83,8 +87,8 @@ export class SeguridadController {
     return this.service.crearRiesgo(d);
   }
 
-  @Get('riesgos') listarRiesgos() {
-    return this.service.listarRiesgos();
+  @Get('riesgos') listarRiesgos(@Query('estado') estado?: string) {
+    return this.service.listarRiesgos(estado);
   }
 
   @Get('riesgos/:id') consultarRiesgo(@Param('id') id: string) {
@@ -106,8 +110,11 @@ export class SeguridadController {
     return this.service.crearIncidente(d);
   }
 
-  @Get('incidentes') listarIncidentes() {
-    return this.service.listarIncidentes();
+  @Get('incidentes') listarIncidentes(
+    @Query('estado') estado?: string,
+    @Query('severidad') severidad?: string,
+  ) {
+    return this.service.listarIncidentes(estado, severidad);
   }
 
   @Get('incidentes/:id') consultarIncidente(@Param('id') id: string) {

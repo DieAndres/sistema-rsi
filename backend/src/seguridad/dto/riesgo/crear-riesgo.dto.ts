@@ -9,5 +9,11 @@ export class CrearRiesgoDto {
 
   impacto!: string;
 
+  tratamiento?: string;
+
+  riesgoResidual?: string;
+
+  aceptado?: boolean;
+
   responsableId?: string;
 }

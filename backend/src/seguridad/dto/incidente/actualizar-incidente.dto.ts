@@ -7,5 +7,7 @@ export class ActualizarIncidenteDto {
 
   estado?: string;
 
+  leccionesAprendidas?: string | null;
+
   responsableId?: string;
 }

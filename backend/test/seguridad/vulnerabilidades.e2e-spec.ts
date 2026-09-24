@@ -44,11 +44,17 @@ describe('Vulnerabilidades (e2e)', () => {
         responsableId,
         nombre: 'Software desactualizado',
         cvss: 7.5,
+        sla: 30,
+        planRemediacion: 'Actualizar el software y verificar el parche',
       })
       .expect(201);
 
     expect(respuesta.body.activoId).toBe(activoId);
     expect(respuesta.body.responsableId).toBe(responsableId);
+    expect(respuesta.body.sla).toBe(30);
+    expect(respuesta.body.planRemediacion).toBe(
+      'Actualizar el software y verificar el parche',
+    );
   });
 
   it('rechaza una vulnerabilidad con activo inexistente', async () => {
@@ -70,5 +76,20 @@ describe('Vulnerabilidades (e2e)', () => {
       .expect(400);
 
     expect(respuesta.body.message).toBe('El nombre es obligatorio');
+  });
+
+  it('rechaza una vulnerabilidad con SLA inválido', async () => {
+    const respuesta = await request(app.getHttpServer())
+      .post('/api/v1/seguridad/vulnerabilidades')
+      .send({
+        activoId,
+        nombre: 'Vulnerabilidad con SLA inválido',
+        sla: -1,
+      })
+      .expect(400);
+
+    expect(respuesta.body.message).toBe(
+      'El SLA debe ser un número entero mayor o igual a cero',
+    );
   });
 });

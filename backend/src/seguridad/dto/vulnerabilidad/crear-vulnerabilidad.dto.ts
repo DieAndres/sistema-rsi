@@ -7,5 +7,9 @@ export class CrearVulnerabilidadDto {
 
   cvss?: number;
 
+  sla?: number;
+
+  planRemediacion?: string;
+
   responsableId?: string;
 }

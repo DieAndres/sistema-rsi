@@ -52,11 +52,17 @@ describe('Riesgos (e2e)', () => {
         nombre: 'Interrupción del servicio',
         probabilidad: 'MEDIA',
         impacto: 'ALTO',
+        tratamiento: 'MITIGAR',
+        riesgoResidual: 'BAJO',
+        aceptado: false,
       })
       .expect(201);
 
     expect(respuesta.body.activoId).toBe(activoId);
     expect(respuesta.body.responsableId).toBe(responsableId);
+    expect(respuesta.body.tratamiento).toBe('MITIGAR');
+    expect(respuesta.body.riesgoResidual).toBe('BAJO');
+    expect(respuesta.body.aceptado).toBe(false);
   });
 
   it('rechaza un riesgo con activo inexistente', async () => {
@@ -96,6 +102,23 @@ describe('Riesgos (e2e)', () => {
 
     expect(respuesta.body.message).toBe(
       'Nombre, probabilidad e impacto son obligatorios',
+    );
+  });
+
+  it('rechaza un tratamiento de riesgo inválido', async () => {
+    const respuesta = await request(app.getHttpServer())
+      .post('/api/v1/seguridad/riesgos')
+      .send({
+        activoId,
+        nombre: 'Riesgo con tratamiento inválido',
+        probabilidad: 'BAJA',
+        impacto: 'BAJO',
+        tratamiento: 'IGNORAR',
+      })
+      .expect(400);
+
+    expect(respuesta.body.message).toBe(
+      'El tratamiento debe ser MITIGAR, TRANSFERIR, EVITAR o ACEPTAR',
     );
   });
 });
