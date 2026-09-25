@@ -11,4 +11,6 @@ postgres-data/
 uploads/
 .codex/
 backend/dev.db
-
+docs/99-Bitacora-Trabajo.md
+plantilla/
+backend/prisma/seed-soa-demo.mjs
