@@ -1,0 +1,20 @@
+-- Map existing labels to the official 1..5 scale without dropping data.
+ALTER TABLE "riesgos" ALTER COLUMN "probabilidad" TYPE INTEGER USING (
+  CASE upper(trim("probabilidad"))
+    WHEN 'MUY BAJA' THEN 1 WHEN 'MUY_BAJA' THEN 1
+    WHEN 'BAJA' THEN 2
+    WHEN 'MEDIA' THEN 3 WHEN 'MEDIO' THEN 3
+    WHEN 'ALTA' THEN 4
+    WHEN 'MUY ALTA' THEN 5 WHEN 'MUY_ALTA' THEN 5
+  END
+);
+ALTER TABLE "riesgos" ALTER COLUMN "impacto" TYPE INTEGER USING (
+  CASE upper(trim("impacto"))
+    WHEN 'INSIGNIFICANTE' THEN 1
+    WHEN 'MENOR' THEN 2
+    WHEN 'MODERADO' THEN 3 WHEN 'MEDIO' THEN 3
+    WHEN 'MAYOR' THEN 4 WHEN 'ALTO' THEN 4
+    WHEN 'CATASTROFICO' THEN 5 WHEN 'CATASTRÓFICO' THEN 5
+    WHEN 'CRITICO' THEN 5 WHEN 'CRÍTICO' THEN 5
+  END
+);

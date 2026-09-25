@@ -21,13 +21,17 @@ enum TipoResponsabilidadRaci {
 }
 
 model Organizacion {
-  id             String               @id @default(uuid())
-  nombre         String
-  unidades       UnidadOrganizativa[]
-  politicas      Politica[]
-  evidencias     Evidencia[]
-  planes         Plan[]
-  procedimientos Procedimiento[]
+  id              String               @id @default(uuid())
+  nombre          String
+  alcanceSgsi      String?
+  unidades        UnidadOrganizativa[]
+  politicas       Politica[]
+  evidencias      Evidencia[]
+  planes          Plan[]
+  procedimientos  Procedimiento[]
+  procesos        Proceso[]
+  evaluacionesSoa EvaluacionSoa[]
+  brechasMcu      BrechaMcu[]
 
   @@map("organizaciones")
 }
@@ -38,15 +42,18 @@ model UnidadOrganizativa {
   unidadPadreId  String?
   tipo           TipoUnidadOrganizativa
   nombre         String
+  responsableId  String?
 
   organizacion  Organizacion         @relation(fields: [organizacionId], references: [id])
   unidadPadre   UnidadOrganizativa?  @relation("JerarquiaUnidades", fields: [unidadPadreId], references: [id])
   unidadesHijas UnidadOrganizativa[] @relation("JerarquiaUnidades")
   trabajadores  Trabajador[]
   activos       Activo[]
+  responsable   Trabajador?          @relation("ResponsableUnidad", fields: [responsableId], references: [id])
 
   @@index([organizacionId])
   @@index([unidadPadreId])
+  @@index([responsableId])
   @@map("unidades_organizativas")
 }
 
@@ -57,16 +64,19 @@ model Trabajador {
   cargo                String
   correo               String?
 
-  unidadOrganizativa          UnidadOrganizativa @relation(fields: [unidadOrganizativaId], references: [id])
+  unidadOrganizativa          UnidadOrganizativa   @relation(fields: [unidadOrganizativaId], references: [id])
+  unidadesResponsable         UnidadOrganizativa[] @relation("ResponsableUnidad")
   asignacionesRaci            AsignacionRaci[]
-  vulnerabilidadesResponsable Vulnerabilidad[]   @relation("ResponsableVulnerabilidad")
-  riesgosResponsable          Riesgo[]           @relation("ResponsableRiesgo")
-  incidentesResponsable       Incidente[]        @relation("ResponsableIncidente")
-  politicasResponsable        Politica[]         @relation("ResponsablePolitica")
-  evidenciasResponsable       Evidencia[]        @relation("ResponsableEvidencia")
-  planesResponsable           Plan[]             @relation("ResponsablePlan")
-  procedimientosResponsable   Procedimiento[]    @relation("ResponsableProcedimiento")
-  activosResponsable          Activo[]           @relation("ResponsableActivo")
+  vulnerabilidadesResponsable Vulnerabilidad[]     @relation("ResponsableVulnerabilidad")
+  riesgosResponsable          Riesgo[]             @relation("ResponsableRiesgo")
+  incidentesResponsable       Incidente[]          @relation("ResponsableIncidente")
+  politicasResponsable        Politica[]           @relation("ResponsablePolitica")
+  evidenciasResponsable       Evidencia[]          @relation("ResponsableEvidencia")
+  planesResponsable           Plan[]               @relation("ResponsablePlan")
+  procedimientosResponsable   Procedimiento[]      @relation("ResponsableProcedimiento")
+  activosResponsable          Activo[]             @relation("ResponsableActivo")
+  procesosResponsable         Proceso[]            @relation("ResponsableProceso")
+  hitosResponsable            HitoPlan[]           @relation("ResponsableHitoPlan")
 
   @@index([unidadOrganizativaId])
   @@map("trabajadores")
@@ -98,6 +108,7 @@ model Activo {
   descripcion          String?
   tipo                 String
   criticidad           String  @default("MEDIA")
+  clasificacion        String?
   unidadOrganizativaId String
   responsableId        String?
 
@@ -113,18 +124,18 @@ model Activo {
 }
 
 model Vulnerabilidad {
-  id            String      @id @default(uuid())
-  activoId      String
-  nombre        String
-  descripcion   String?
-  cvss          Float?
-  sla           Int?
+  id              String      @id @default(uuid())
+  activoId        String
+  nombre          String
+  descripcion     String?
+  cvss            Float?
+  sla             Int?
   planRemediacion String?
-  estado        String      @default("ABIERTA")
-  responsableId String?
-  activo        Activo      @relation(fields: [activoId], references: [id])
-  responsable   Trabajador? @relation("ResponsableVulnerabilidad", fields: [responsableId], references: [id])
-  evidencias    Evidencia[]
+  estado          String      @default("ABIERTA")
+  responsableId   String?
+  activo          Activo      @relation(fields: [activoId], references: [id])
+  responsable     Trabajador? @relation("ResponsableVulnerabilidad", fields: [responsableId], references: [id])
+  evidencias      Evidencia[]
 
   @@index([activoId])
   @@index([responsableId])
@@ -132,21 +143,21 @@ model Vulnerabilidad {
 }
 
 model Riesgo {
-  id            String      @id @default(uuid())
-  activoId      String
-  nombre        String
-  descripcion   String?
-  probabilidad  String
-  impacto       String
-  tratamiento   String?
+  id             String      @id @default(uuid())
+  activoId       String
+  nombre         String
+  descripcion    String?
+  probabilidad   Int
+  impacto        Int
+  tratamiento    String?
   riesgoResidual String?
-  aceptado      Boolean     @default(false)
-  estado        String      @default("ABIERTO")
-  responsableId String?
-  activo        Activo      @relation(fields: [activoId], references: [id])
-  responsable   Trabajador? @relation("ResponsableRiesgo", fields: [responsableId], references: [id])
-  evidencias    Evidencia[]
-  planes        Plan[]
+  aceptado       Boolean     @default(false)
+  estado         String      @default("ABIERTO")
+  responsableId  String?
+  activo         Activo      @relation(fields: [activoId], references: [id])
+  responsable    Trabajador? @relation("ResponsableRiesgo", fields: [responsableId], references: [id])
+  evidencias     Evidencia[]
+  planes         Plan[]
 
   @@index([activoId])
   @@index([responsableId])
@@ -154,17 +165,17 @@ model Riesgo {
 }
 
 model Incidente {
-  id            String      @id @default(uuid())
-  activoId      String
-  titulo        String
-  descripcion   String?
-  severidad     String
-  estado        String      @default("ABIERTO")
+  id                  String      @id @default(uuid())
+  activoId            String
+  titulo              String
+  descripcion         String?
+  severidad           String
+  estado              String      @default("ABIERTO")
   leccionesAprendidas String?
-  responsableId String?
-  activo        Activo      @relation(fields: [activoId], references: [id])
-  responsable   Trabajador? @relation("ResponsableIncidente", fields: [responsableId], references: [id])
-  evidencias    Evidencia[]
+  responsableId       String?
+  activo              Activo      @relation(fields: [activoId], references: [id])
+  responsable         Trabajador? @relation("ResponsableIncidente", fields: [responsableId], references: [id])
+  evidencias          Evidencia[]
 
   @@index([activoId])
   @@index([responsableId])
@@ -173,11 +184,18 @@ model Incidente {
 
 model Proceso {
   id               String           @id @default(uuid())
+  organizacionId   String?
   nombre           String
   descripcion      String?
   estado           String           @default("ACTIVO")
+  version          String           @default("1.0")
+  responsableId    String?
+  fechaRevision    DateTime?
   asignacionesRaci AsignacionRaci[]
+  responsable      Trabajador?      @relation("ResponsableProceso", fields: [responsableId], references: [id])
+  organizacion     Organizacion?    @relation(fields: [organizacionId], references: [id])
 
+  @@index([organizacionId])
   @@map("procesos")
 }
 
@@ -195,12 +213,13 @@ model Evidencia {
   incidenteId      String?
   fechaRegistro    DateTime @default(now())
 
-  organizacion   Organizacion    @relation(fields: [organizacionId], references: [id])
-  responsable    Trabajador?     @relation("ResponsableEvidencia", fields: [responsableId], references: [id])
-  politica       Politica?       @relation(fields: [politicaId], references: [id])
-  riesgo         Riesgo?         @relation(fields: [riesgoId], references: [id])
-  vulnerabilidad Vulnerabilidad? @relation(fields: [vulnerabilidadId], references: [id])
-  incidente      Incidente?      @relation(fields: [incidenteId], references: [id])
+  organizacion    Organizacion    @relation(fields: [organizacionId], references: [id])
+  responsable     Trabajador?     @relation("ResponsableEvidencia", fields: [responsableId], references: [id])
+  politica        Politica?       @relation(fields: [politicaId], references: [id])
+  riesgo          Riesgo?         @relation(fields: [riesgoId], references: [id])
+  vulnerabilidad  Vulnerabilidad? @relation(fields: [vulnerabilidadId], references: [id])
+  incidente       Incidente?      @relation(fields: [incidenteId], references: [id])
+  evaluacionesSoa EvaluacionSoa[]
 
   @@index([organizacionId])
   @@index([responsableId])
@@ -212,7 +231,7 @@ model Evidencia {
 }
 
 model Plan {
-  id             String    @id @default(uuid())
+  id             String     @id @default(uuid())
   organizacionId String
   responsableId  String?
   riesgoId       String?
@@ -221,11 +240,13 @@ model Plan {
   tipo           String
   fechaInicio    DateTime?
   fechaFin       DateTime?
-  estado         String    @default("PENDIENTE")
+  estado         String     @default("PENDIENTE")
+  hitos          HitoPlan[]
 
-  organizacion Organizacion @relation(fields: [organizacionId], references: [id])
-  responsable  Trabajador?  @relation("ResponsablePlan", fields: [responsableId], references: [id])
-  riesgo       Riesgo?      @relation(fields: [riesgoId], references: [id])
+  organizacion    Organizacion    @relation(fields: [organizacionId], references: [id])
+  responsable     Trabajador?     @relation("ResponsablePlan", fields: [responsableId], references: [id])
+  riesgo          Riesgo?         @relation(fields: [riesgoId], references: [id])
+  evaluacionesSoa EvaluacionSoa[]
 
   @@index([organizacionId])
   @@index([responsableId])
@@ -234,14 +255,15 @@ model Plan {
 }
 
 model Procedimiento {
-  id             String  @id @default(uuid())
+  id             String    @id @default(uuid())
   organizacionId String
   politicaId     String
   responsableId  String?
   nombre         String
   descripcion    String?
-  version        String  @default("1.0")
-  estado         String  @default("BORRADOR")
+  version        String    @default("1.0")
+  estado         String    @default("BORRADOR")
+  fechaRevision  DateTime?
 
   organizacion Organizacion @relation(fields: [organizacionId], references: [id])
   politica     Politica     @relation(fields: [politicaId], references: [id])
@@ -251,6 +273,22 @@ model Procedimiento {
   @@index([politicaId])
   @@index([responsableId])
   @@map("procedimientos")
+}
+
+model HitoPlan {
+  id            String      @id @default(uuid())
+  planId        String
+  nombre        String
+  descripcion   String?
+  fechaObjetivo DateTime?
+  estado        String      @default("PENDIENTE")
+  responsableId String?
+  plan          Plan        @relation(fields: [planId], references: [id], onDelete: Cascade)
+  responsable   Trabajador? @relation("ResponsableHitoPlan", fields: [responsableId], references: [id])
+
+  @@index([planId])
+  @@index([responsableId])
+  @@map("hitos_planes")
 }
 
 model AsignacionRaci {
@@ -266,4 +304,65 @@ model AsignacionRaci {
   @@index([procesoId])
   @@index([trabajadorId])
   @@map("asignaciones_raci")
+}
+
+model IndicadorKpi {
+  id            String        @id @default(uuid())
+  codigo        String        @unique
+  nombre        String
+  descripcion   String?
+  formula       String
+  meta          Float
+  activo        Boolean       @default(true)
+  creadoEn      DateTime      @default(now())
+  actualizadoEn DateTime      @updatedAt
+  mediciones    MedicionKpi[]
+
+  @@map("indicadores_kpi")
+}
+
+model MedicionKpi {
+  id            String       @id @default(uuid())
+  indicadorId   String
+  valor         Float
+  fechaRegistro DateTime     @default(now())
+  indicador     IndicadorKpi @relation(fields: [indicadorId], references: [id], onDelete: Cascade)
+
+  @@index([indicadorId, fechaRegistro])
+  @@map("mediciones_kpi")
+}
+
+model EvaluacionSoa {
+  id             String       @id @default(uuid())
+  organizacionId String
+  controlId      String
+  titulo         String?
+  aplica         Boolean?
+  justificacion  String?
+  insumos        String?
+  estado         String?
+  evidenciaId    String?
+  planId         String?
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id])
+  evidencia      Evidencia?   @relation(fields: [evidenciaId], references: [id])
+  plan           Plan?        @relation(fields: [planId], references: [id])
+
+  @@unique([organizacionId, controlId])
+  @@index([evidenciaId])
+  @@index([planId])
+  @@map("evaluaciones_soa")
+}
+
+model BrechaMcu {
+  id             String       @id @default(uuid())
+  organizacionId String
+  funcion        String
+  perfilObjetivo String?
+  evidencia      String?
+  madurez        Int?
+  acciones       String?
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id])
+
+  @@unique([organizacionId, funcion])
+  @@map("brechas_mcu")
 }
