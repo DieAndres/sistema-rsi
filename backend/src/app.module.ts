@@ -6,9 +6,18 @@ import { OrganizacionModule } from './organizacion/organizacion.module';
 import { SeguridadModule } from './seguridad/seguridad.module';
 import { CumplimientoModule } from './cumplimiento/cumplimiento.module';
 import { KpiModule } from './kpi/kpi.module';
+import { BusquedaModule } from './busqueda/busqueda.module';
+import { ExportacionesModule } from './exportaciones/exportaciones.module';
 
 @Module({
-  imports: [OrganizacionModule, SeguridadModule, CumplimientoModule, KpiModule],
+  imports: [
+    OrganizacionModule,
+    SeguridadModule,
+    CumplimientoModule,
+    KpiModule,
+    BusquedaModule,
+    ExportacionesModule,
+  ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })
