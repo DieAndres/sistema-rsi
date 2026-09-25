@@ -6,7 +6,8 @@
 
 ## Objetivo
 
-Verificar los principales flujos de organización, seguridad y cumplimiento, incluyendo respuestas correctas y rechazo de datos o relaciones inválidas.
+Verificar flujos de organización, seguridad, cumplimiento y KPI, incluyendo
+respuestas correctas y rechazo de datos o relaciones inválidas.
 
 ## Comando ejecutado
 
@@ -19,10 +20,10 @@ Ejecutado desde `backend/`, con PostgreSQL disponible mediante Docker Compose.
 ## Resultado
 
 ```text
-Test Suites: 9 passed, 9 total
-Tests:       36 passed, 36 total
+Test Suites: 11 passed, 11 total
+Tests:       43 passed, 43 total
 Snapshots:   0 total
-Time:        7.911 s
+Time:        10.245 s
 ```
 
 Resultado general: **Aprobado**.
@@ -32,11 +33,14 @@ Resultado general: **Aprobado**.
 ```text
 backend/test/
 ├── app.e2e-spec.ts
+├── busqueda.e2e-spec.ts
 ├── cumplimiento/
 │   └── cumplimiento.e2e-spec.ts
 ├── helpers/
 │   └── crear-aplicacion-de-prueba.ts
 ├── jest-e2e.json
+├── kpi/
+│   └── kpi.e2e-spec.ts
 ├── organizacion/
 │   ├── organigrama.e2e-spec.ts
 │   └── organizaciones.e2e-spec.ts
@@ -54,11 +58,13 @@ backend/test/
 
 - Crear una organización y rechazarla sin nombre.
 - Crear unidades jerárquicas, trabajadores, procesos y asignaciones RACI.
+- Asignar responsables de unidad y consultar la vista integrada de organigrama/RACI.
 - Rechazar datos obligatorios o referencias inexistentes.
 
 ### Seguridad
 
 - Crear activos, riesgos, vulnerabilidades e incidentes asociados.
+- Clasificar activos, filtrar por unidad y calcular puntaje inherente del riesgo.
 - Rechazar unidades, activos, trabajadores y responsables inexistentes o de otra unidad.
 - Rechazar campos obligatorios ausentes y tratamientos/SLA inválidos.
 
@@ -69,11 +75,22 @@ backend/test/
 - Rechazar datos obligatorios y fechas inválidas en planes.
 - Validar responsables en la misma organización.
 - Crear planes y evidencias con relaciones válidas.
+- Crear hitos de planes con fecha y estado.
+
+### Búsqueda
+
+- Buscar por texto y filtrar resultados por unidad organizativa, estado y severidad.
 
 ### Aplicación
 
 - Verificar la ruta base `/api/v1`.
 - Verificar la estructura y tipos numéricos del resumen KPI.
+
+### KPI
+
+- Consultar el catálogo de fórmulas disponibles y rechazar fórmulas desconocidas.
+- Crear indicadores, cambiar metas y calcular mediciones para todas las fórmulas.
+- Consultar el histórico y rechazar mediciones de indicadores inactivos.
 
 ## Controles demostrados
 
@@ -88,7 +105,7 @@ backend/test/
 
 La suite terminó correctamente. Node mostró una advertencia experimental de
 VM Modules y el adaptador PostgreSQL mostró una advertencia de deprecación de
-`client.query()`; ninguna impidió que las 36 pruebas pasaran.
+`client.query()`; ninguna impidió que las 41 pruebas pasaran.
 
 ## Archivos relacionados
 

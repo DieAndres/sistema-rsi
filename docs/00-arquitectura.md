@@ -78,7 +78,8 @@ controladores, servicios y DTOs, y utiliza Prisma para acceder a PostgreSQL.
 | Organización | Organizaciones, unidades, trabajadores, procesos y RACI | Implementado |
 | Seguridad | Activos, riesgos, vulnerabilidades e incidentes | Implementado |
 | Cumplimiento | Políticas, procedimientos, planes y evidencias | Implementado |
-| KPI | Consulta agregada de indicadores operativos | Implementado, versión básica |
+| Búsqueda | Búsqueda global y filtros por unidad, estado y severidad | Implementado en API |
+| KPI | Resumen, indicadores configurables, metas y mediciones históricas | Implementado; fórmulas disponibles mediante catálogo |
 | Prisma | Persistencia y migraciones de PostgreSQL | Implementado |
 | Docker Compose | Ejecución local de PostgreSQL y volumen persistente | Implementado; sin respaldo automático |
 | Documentación de seguridad | Política, procedimientos de incidentes y vulnerabilidades, plan de continuidad | Redactados; requieren validación/aprobación operativa |
@@ -96,6 +97,7 @@ Los archivos principales de los módulos implementados son:
 | Organización | `backend/src/organizacion/organizacion.controller.ts`, `organizacion.service.ts` |
 | Seguridad | `backend/src/seguridad/seguridad.controller.ts`, `seguridad.service.ts` |
 | Cumplimiento | `backend/src/cumplimiento/cumplimiento.controller.ts`, `cumplimiento.service.ts` |
+| Búsqueda | `backend/src/busqueda/busqueda.controller.ts`, `busqueda.service.ts` |
 | KPI | `backend/src/kpi/kpi.controller.ts`, `kpi.service.ts` |
 | Persistencia | `backend/prisma/schema.prisma`, `backend/src/prisma/prisma.service.ts` |
 
@@ -111,15 +113,19 @@ Este diagrama muestra los datos principales del sistema y sus relaciones. A dife
 ```mermaid
 erDiagram
     ORGANIZACION ||--o{ UNIDAD_ORGANIZATIVA : contiene
+    ORGANIZACION ||--o{ PROCESO : contiene
     UNIDAD_ORGANIZATIVA ||--o{ UNIDAD_ORGANIZATIVA : depende_de
     UNIDAD_ORGANIZATIVA ||--o{ TRABAJADOR : tiene
+    TRABAJADOR ||--o{ UNIDAD_ORGANIZATIVA : responsable_de
     TRABAJADOR ||--o{ ASIGNACION_RACI : recibe
+    TRABAJADOR ||--o{ PROCESO : responsable_de
     PROCESO ||--o{ ASIGNACION_RACI : tiene
     UNIDAD_ORGANIZATIVA ||--o{ ACTIVO : posee
     TRABAJADOR ||--o{ ACTIVO : responsable_de
     ACTIVO ||--o{ RIESGO : afectado_por
     TRABAJADOR ||--o{ RIESGO : responsable_de
     RIESGO ||--o{ PLAN : asociado_a
+    PLAN ||--o{ HITO_PLAN : contiene
     ACTIVO ||--o{ VULNERABILIDAD : contiene
     TRABAJADOR ||--o{ VULNERABILIDAD : responsable_de
     ACTIVO ||--o{ INCIDENTE : involucrado_en
@@ -138,6 +144,7 @@ erDiagram
         uuid unidad_padre_id FK
         string tipo
         string nombre
+        uuid trabajador_responsable_id FK
     }
     TRABAJADOR {
         uuid id PK
@@ -147,7 +154,12 @@ erDiagram
     }
     PROCESO {
         uuid id PK
+        uuid organizacion_id FK
+        uuid trabajador_responsable_id FK
         string nombre
+        string version
+        string estado
+        date fecha_revision
     }
     ASIGNACION_RACI {
         uuid id PK
@@ -160,15 +172,27 @@ erDiagram
         uuid unidad_organizativa_id FK
         uuid trabajador_responsable_id FK
         string nombre
+        string clasificacion
         string criticidad
     }
     RIESGO {
         uuid id PK
         uuid activo_id FK
         uuid trabajador_responsable_id FK
+        integer probabilidad
+        integer impacto
+        integer puntaje_inherente_calculado
         string tratamiento
         string riesgo_residual
         boolean aceptado
+        string estado
+    }
+    HITO_PLAN {
+        uuid id PK
+        uuid plan_id FK
+        uuid trabajador_responsable_id FK
+        string nombre
+        date fecha_objetivo
         string estado
     }
     VULNERABILIDAD {
@@ -203,6 +227,7 @@ erDiagram
         string nombre
         string version
         string estado
+        date fecha_revision
     }
     EVIDENCIA {
         uuid id PK
@@ -233,7 +258,8 @@ erDiagram
 - Backend NestJS con API REST versionada en `/api/v1`.
 - PostgreSQL con Prisma y migraciones.
 - Módulos de organización, seguridad y cumplimiento.
-- Endpoint básico de KPI: `GET /api/v1/kpis/resumen`.
+- KPI: resumen existente, catálogo de fórmulas, configuración de indicadores,
+  metas y captura/consulta de mediciones históricas.
 - Ejecución local de PostgreSQL mediante Docker Compose.
 - Volumen persistente local para los datos de PostgreSQL.
 - Documentación inicial de política de seguridad, gestión de incidentes,

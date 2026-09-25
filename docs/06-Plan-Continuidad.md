@@ -18,7 +18,7 @@ El volumen de Docker conserva los datos cuando el contenedor se reinicia, pero n
 
 ## 2. Objetivos de recuperación
 
-Los valores siguientes son objetivos iniciales propuestos para el entorno académico. Deben aprobarse y confirmarse mediante ejercicios de recuperación; no representan resultados ya medidos.
+Los valores siguientes son objetivos iniciales propuestos para el entorno local de pruebas. Deben aprobarse y confirmarse mediante ejercicios de recuperación; no representan resultados ya medidos.
 
 | Métrica | Objetivo inicial |
 |---|---|
