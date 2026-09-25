@@ -51,6 +51,10 @@ describe('Organigrama, procesos y RACI (e2e)', () => {
       })
       .expect(201);
     trabajadorId = trabajador.body.id;
+    await request(app.getHttpServer())
+      .patch(`/api/v1/organizaciones/unidades/${unidadId}`)
+      .send({ responsableId: trabajadorId })
+      .expect(200);
   });
 
   it('rechaza un trabajador de una unidad inexistente', async () => {
@@ -66,13 +70,20 @@ describe('Organigrama, procesos y RACI (e2e)', () => {
 
   it('crea un proceso y una asignación RACI', async () => {
     const proceso = await request(app.getHttpServer())
-      .post('/api/v1/organizaciones/procesos')
+      .post(`/api/v1/organizaciones/${organizacionId}/procesos`)
       .send({
         nombre: 'Gestión de incidentes',
         descripcion: 'Proceso de respuesta a incidentes',
+        version: '2.0',
+        estado: 'APROBADA',
+        responsableId: trabajadorId,
+        fechaRevision: '2026-12-01',
       })
       .expect(201);
     procesoId = proceso.body.id;
+    expect(proceso.body.responsableId).toBe(trabajadorId);
+    expect(proceso.body.version).toBe('2.0');
+    expect(proceso.body.estado).toBe('APROBADA');
 
     const asignacion = await request(app.getHttpServer())
       .post('/api/v1/organizaciones/asignaciones-raci')
@@ -82,6 +93,14 @@ describe('Organigrama, procesos y RACI (e2e)', () => {
     expect(asignacion.body.procesoId).toBe(procesoId);
     expect(asignacion.body.trabajadorId).toBe(trabajadorId);
     expect(asignacion.body.tipoResponsabilidad).toBe('R');
+
+    const mapa = await request(app.getHttpServer())
+      .get(`/api/v1/organizaciones/${organizacionId}/mapa`)
+      .expect(200);
+    expect(mapa.body.unidades[0].responsable.id).toBe(trabajadorId);
+    expect(mapa.body.procesos[0].asignacionesRaci[0].trabajador.id).toBe(
+      trabajadorId,
+    );
   });
 
   it('rechaza un proceso sin nombre', async () => {

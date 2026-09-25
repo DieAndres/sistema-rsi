@@ -47,6 +47,14 @@ export class OrganizacionController {
     return this.organizacionService.listarUnidades(organizacionId);
   }
 
+  @Get(':id/mapa')
+  async consultarMapa(@Param('id') id: string) {
+    const organizacion = await this.organizacionService.consultarMapa(id);
+    if (!organizacion)
+      throw new NotFoundException('Organización no encontrada');
+    return organizacion;
+  }
+
   @Get('unidades/:id')
   async consultarUnidad(@Param('id') id: string) {
     const unidad = await this.organizacionService.consultarUnidad(id);
@@ -138,6 +146,14 @@ export class OrganizacionController {
   @Post('procesos')
   crearProceso(@Body() datos: CrearProcesoDto) {
     return this.organizacionService.crearProceso(datos);
+  }
+
+  @Post(':organizacionId/procesos')
+  crearProcesoDeOrganizacion(
+    @Param('organizacionId') organizacionId: string,
+    @Body() datos: CrearProcesoDto,
+  ) {
+    return this.organizacionService.crearProceso({ ...datos, organizacionId });
   }
 
   @Get('procesos')

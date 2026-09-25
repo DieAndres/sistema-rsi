@@ -7,5 +7,7 @@ export class CrearActivoDto {
 
   criticidad?: string;
 
+  clasificacion!: string;
+
   responsableId?: string;
 }

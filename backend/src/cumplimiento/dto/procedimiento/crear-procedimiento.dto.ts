@@ -7,5 +7,9 @@ export class CrearProcedimientoDto {
 
   version?: string;
 
+  estado?: string;
+
   responsableId?: string;
+
+  fechaRevision?: string;
 }

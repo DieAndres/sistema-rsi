@@ -5,6 +5,8 @@ export class CrearPoliticaDto {
 
   version?: string;
 
+  estado?: string;
+
   responsableId?: string;
 
   fechaRevision?: string;

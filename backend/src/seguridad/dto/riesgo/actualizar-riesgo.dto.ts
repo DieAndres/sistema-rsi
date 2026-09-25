@@ -3,9 +3,9 @@ export class ActualizarRiesgoDto {
 
   descripcion?: string;
 
-  probabilidad?: string;
+  probabilidad?: number;
 
-  impacto?: string;
+  impacto?: number;
 
   tratamiento?: string | null;
 

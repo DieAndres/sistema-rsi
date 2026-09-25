@@ -17,6 +17,8 @@ import { CrearPlanDto } from './dto/plan/crear-plan.dto';
 import { ActualizarPlanDto } from './dto/plan/actualizar-plan.dto';
 import { CrearProcedimientoDto } from './dto/procedimiento/crear-procedimiento.dto';
 import { ActualizarProcedimientoDto } from './dto/procedimiento/actualizar-procedimiento.dto';
+import { CrearHitoDto } from './dto/hito/crear-hito.dto';
+import { ActualizarHitoDto } from './dto/hito/actualizar-hito.dto';
 
 @Controller('cumplimiento')
 export class CumplimientoController {
@@ -119,6 +121,31 @@ export class CumplimientoController {
   @Delete('planes/:id')
   eliminarPlan(@Param('id') id: string) {
     return this.service.eliminarPlan(id);
+  }
+
+  @Post('planes/:planId/hitos')
+  crearHito(@Param('planId') planId: string, @Body() datos: CrearHitoDto) {
+    return this.service.crearHito(planId, datos);
+  }
+
+  @Get('planes/:planId/hitos')
+  listarHitos(@Param('planId') planId: string) {
+    return this.service.listarHitos(planId);
+  }
+
+  @Patch('hitos/:id')
+  async actualizarHito(
+    @Param('id') id: string,
+    @Body() datos: ActualizarHitoDto,
+  ) {
+    const hito = await this.service.actualizarHito(id, datos);
+    if (!hito) throw new NotFoundException('Hito no encontrado');
+    return hito;
+  }
+
+  @Delete('hitos/:id')
+  eliminarHito(@Param('id') id: string) {
+    return this.service.eliminarHito(id);
   }
 
   @Post('procedimientos/:organizacionId')

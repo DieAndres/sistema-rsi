@@ -21,15 +21,28 @@ describe('Cumplimiento (e2e)', () => {
 
     const politica = await request(app.getHttpServer())
       .post(`/api/v1/cumplimiento/politicas/${organizacion.body.id}`)
-      .send({ titulo: 'Política de prueba' })
+      .send({
+        titulo: 'Política de prueba',
+        version: '2.1',
+        estado: 'APROBADA',
+        fechaRevision: '2026-12-01',
+      })
       .expect(201);
 
     const procedimiento = await request(app.getHttpServer())
       .post(`/api/v1/cumplimiento/procedimientos/${organizacion.body.id}`)
-      .send({ politicaId: politica.body.id, nombre: 'Procedimiento de prueba' })
+      .send({
+        politicaId: politica.body.id,
+        nombre: 'Procedimiento de prueba',
+        version: '1.2',
+        estado: 'APROBADA',
+        fechaRevision: '2026-12-01',
+      })
       .expect(201);
 
     expect(procedimiento.body.politicaId).toBe(politica.body.id);
+    expect(procedimiento.body.estado).toBe('APROBADA');
+    expect(procedimiento.body.fechaRevision).toContain('2026-12-01');
   });
 
   it('rechaza relaciones inexistentes', async () => {
@@ -102,6 +115,47 @@ describe('Cumplimiento (e2e)', () => {
     expect(respuesta.body.message).toBe('El riesgo asociado no existe');
   });
 
+  it('crea hitos con fecha y estado asociados a un plan', async () => {
+    const organizacion = await request(app.getHttpServer())
+      .post('/api/v1/organizaciones')
+      .send({ nombre: `Organización de hitos ${Date.now()}` })
+      .expect(201);
+    const plan = await request(app.getHttpServer())
+      .post(`/api/v1/cumplimiento/planes/${organizacion.body.id}`)
+      .send({ nombre: 'Plan anual', tipo: 'ANUAL' })
+      .expect(201);
+    const hito = await request(app.getHttpServer())
+      .post(`/api/v1/cumplimiento/planes/${plan.body.id}/hitos`)
+      .send({
+        nombre: 'Revisión trimestral',
+        fechaObjetivo: '2026-12-01',
+        estado: 'EN_CURSO',
+      })
+      .expect(201);
+
+    expect(hito.body.planId).toBe(plan.body.id);
+    expect(hito.body.estado).toBe('EN_CURSO');
+    expect(hito.body.fechaObjetivo).toContain('2026-12-01');
+    const planConsultado = await request(app.getHttpServer())
+      .get(`/api/v1/cumplimiento/planes/${plan.body.id}`)
+      .expect(200);
+    expect(planConsultado.body.hitos).toHaveLength(1);
+
+    const hitoActualizado = await request(app.getHttpServer())
+      .patch(`/api/v1/cumplimiento/hitos/${hito.body.id}`)
+      .send({ estado: 'COMPLETADO' })
+      .expect(200);
+    expect(hitoActualizado.body.estado).toBe('COMPLETADO');
+
+    await request(app.getHttpServer())
+      .delete(`/api/v1/cumplimiento/hitos/${hito.body.id}`)
+      .expect(200);
+    const hitosRestantes = await request(app.getHttpServer())
+      .get(`/api/v1/cumplimiento/planes/${plan.body.id}/hitos`)
+      .expect(200);
+    expect(hitosRestantes.body).toHaveLength(0);
+  });
+
   it('rechaza una evidencia con un incidente inexistente', async () => {
     const organizacion = await request(app.getHttpServer())
       .post('/api/v1/organizaciones')
@@ -135,15 +189,15 @@ describe('Cumplimiento (e2e)', () => {
       .expect(201);
     const activo = await request(app.getHttpServer())
       .post(`/api/v1/seguridad/unidades/${unidad.body.id}/activos`)
-      .send({ nombre: 'Activo de B', tipo: 'HW' })
+      .send({ nombre: 'Activo de B', tipo: 'HW', clasificacion: 'INTERNO' })
       .expect(201);
     const riesgo = await request(app.getHttpServer())
       .post('/api/v1/seguridad/riesgos')
       .send({
         activoId: activo.body.id,
         nombre: 'Riesgo de B',
-        probabilidad: 'MEDIA',
-        impacto: 'ALTO',
+        probabilidad: 3,
+        impacto: 4,
       })
       .expect(201);
 

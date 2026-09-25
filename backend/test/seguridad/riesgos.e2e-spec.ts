@@ -31,6 +31,7 @@ describe('Riesgos (e2e)', () => {
       .send({
         nombre: 'Servidor de riesgos',
         tipo: 'HW',
+        clasificacion: 'INTERNO',
         responsableId: trabajador.body.id,
       })
       .expect(201);
@@ -50,8 +51,8 @@ describe('Riesgos (e2e)', () => {
         activoId,
         responsableId,
         nombre: 'Interrupción del servicio',
-        probabilidad: 'MEDIA',
-        impacto: 'ALTO',
+        probabilidad: 3,
+        impacto: 4,
         tratamiento: 'MITIGAR',
         riesgoResidual: 'BAJO',
         aceptado: false,
@@ -63,6 +64,7 @@ describe('Riesgos (e2e)', () => {
     expect(respuesta.body.tratamiento).toBe('MITIGAR');
     expect(respuesta.body.riesgoResidual).toBe('BAJO');
     expect(respuesta.body.aceptado).toBe(false);
+    expect(respuesta.body.puntajeInherente).toBe(12);
   });
 
   it('rechaza un riesgo con activo inexistente', async () => {
@@ -71,8 +73,8 @@ describe('Riesgos (e2e)', () => {
       .send({
         activoId: '00000000-0000-0000-0000-000000000000',
         nombre: 'Riesgo inválido',
-        probabilidad: 'BAJA',
-        impacto: 'BAJO',
+        probabilidad: 2,
+        impacto: 1,
       })
       .expect(400);
 
@@ -86,8 +88,8 @@ describe('Riesgos (e2e)', () => {
         activoId,
         responsableId: '00000000-0000-0000-0000-000000000000',
         nombre: 'Riesgo inválido',
-        probabilidad: 'BAJA',
-        impacto: 'BAJO',
+        probabilidad: 2,
+        impacto: 1,
       })
       .expect(400);
 
@@ -111,8 +113,8 @@ describe('Riesgos (e2e)', () => {
       .send({
         activoId,
         nombre: 'Riesgo con tratamiento inválido',
-        probabilidad: 'BAJA',
-        impacto: 'BAJO',
+        probabilidad: 2,
+        impacto: 1,
         tratamiento: 'IGNORAR',
       })
       .expect(400);

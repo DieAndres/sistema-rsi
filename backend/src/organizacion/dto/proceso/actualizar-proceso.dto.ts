@@ -4,4 +4,10 @@ export class ActualizarProcesoDto {
   descripcion?: string | null;
 
   estado?: string;
+
+  version?: string;
+
+  responsableId?: string | null;
+
+  fechaRevision?: string | null;
 }

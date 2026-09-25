@@ -27,6 +27,8 @@ import { CrearProcedimientoDto } from '../cumplimiento/dto/procedimiento/crear-p
 import { ActualizarProcedimientoDto } from '../cumplimiento/dto/procedimiento/actualizar-procedimiento.dto';
 import { ActualizarActivoDto } from '../seguridad/dto/activo/actualizar-activo.dto';
 import { CrearActivoDto } from '../seguridad/dto/activo/crear-activo.dto';
+import { CrearHitoDto } from '../cumplimiento/dto/hito/crear-hito.dto';
+import { ActualizarHitoDto } from '../cumplimiento/dto/hito/actualizar-hito.dto';
 
 @Injectable()
 export class OrganizacionService {
@@ -50,6 +52,14 @@ export class OrganizacionService {
         'La política no pertenece a la organización',
       );
     }
+    await this.validarResponsableDeOrganizacion(
+      datos.responsableId,
+      organizacionId,
+    );
+    const fechaRevision = this.validarFecha(
+      datos.fechaRevision,
+      'fecha de revisión',
+    );
 
     return this.prisma.procedimiento.create({
       data: {
@@ -58,7 +68,9 @@ export class OrganizacionService {
         nombre,
         descripcion: datos.descripcion?.trim() || null,
         version: datos.version?.trim() || '1.0',
+        estado: datos.estado?.trim() || 'BORRADOR',
         responsableId: datos.responsableId,
+        fechaRevision,
       },
       include: { organizacion: true, politica: true, responsable: true },
     });
@@ -79,6 +91,16 @@ export class OrganizacionService {
   }
 
   async actualizarProcedimiento(id: string, datos: ActualizarProcedimientoDto) {
+    const procedimiento = await this.prisma.procedimiento.findUnique({
+      where: { id },
+    });
+    if (!procedimiento) return null;
+    if (datos.responsableId) {
+      await this.validarResponsableDeOrganizacion(
+        datos.responsableId,
+        procedimiento.organizacionId,
+      );
+    }
     const datosActualizados: Prisma.ProcedimientoUncheckedUpdateInput = {};
 
     if (datos.nombre !== undefined)
@@ -91,6 +113,11 @@ export class OrganizacionService {
       datosActualizados.estado = datos.estado.trim();
     if (datos.responsableId !== undefined)
       datosActualizados.responsableId = datos.responsableId || null;
+    if (datos.fechaRevision !== undefined)
+      datosActualizados.fechaRevision = this.validarFecha(
+        datos.fechaRevision || undefined,
+        'fecha de revisión',
+      );
 
     return this.prisma.procedimiento.update({
       where: { id },
@@ -155,13 +182,23 @@ export class OrganizacionService {
         responsableId: datos.responsableId,
         riesgoId: datos.riesgoId,
       },
-      include: { organizacion: true, responsable: true, riesgo: true },
+      include: {
+        organizacion: true,
+        responsable: true,
+        riesgo: true,
+        hitos: true,
+      },
     });
   }
 
   listarPlanes() {
     return this.prisma.plan.findMany({
-      include: { organizacion: true, responsable: true, riesgo: true },
+      include: {
+        organizacion: true,
+        responsable: true,
+        riesgo: true,
+        hitos: true,
+      },
       orderBy: { nombre: 'asc' },
     });
   }
@@ -169,11 +206,24 @@ export class OrganizacionService {
   consultarPlan(id: string) {
     return this.prisma.plan.findUnique({
       where: { id },
-      include: { organizacion: true, responsable: true, riesgo: true },
+      include: {
+        organizacion: true,
+        responsable: true,
+        riesgo: true,
+        hitos: true,
+      },
     });
   }
 
   async actualizarPlan(id: string, datos: ActualizarPlanDto) {
+    const plan = await this.prisma.plan.findUnique({ where: { id } });
+    if (!plan) return null;
+    if (datos.responsableId) {
+      await this.validarResponsableDeOrganizacion(
+        datos.responsableId,
+        plan.organizacionId,
+      );
+    }
     const datosActualizados: Prisma.PlanUncheckedUpdateInput = {};
 
     if (datos.nombre !== undefined)
@@ -182,13 +232,15 @@ export class OrganizacionService {
       datosActualizados.descripcion = datos.descripcion?.trim() || null;
     if (datos.tipo !== undefined) datosActualizados.tipo = datos.tipo.trim();
     if (datos.fechaInicio !== undefined)
-      datosActualizados.fechaInicio = datos.fechaInicio
-        ? new Date(datos.fechaInicio)
-        : null;
+      datosActualizados.fechaInicio = this.validarFecha(
+        datos.fechaInicio,
+        'fecha de inicio',
+      );
     if (datos.fechaFin !== undefined)
-      datosActualizados.fechaFin = datos.fechaFin
-        ? new Date(datos.fechaFin)
-        : null;
+      datosActualizados.fechaFin = this.validarFecha(
+        datos.fechaFin,
+        'fecha de fin',
+      );
     if (datos.estado !== undefined)
       datosActualizados.estado = datos.estado.trim();
     if (datos.responsableId !== undefined)
@@ -205,6 +257,76 @@ export class OrganizacionService {
 
   eliminarPlan(id: string) {
     return this.prisma.plan.delete({ where: { id } });
+  }
+
+  async crearHito(planId: string, datos: CrearHitoDto) {
+    const plan = await this.prisma.plan.findUnique({ where: { id: planId } });
+    if (!plan) throw new BadRequestException('El plan no existe');
+    const nombre = datos.nombre?.trim();
+    if (!nombre) throw new BadRequestException('El nombre es obligatorio');
+    await this.validarResponsableDeOrganizacion(
+      datos.responsableId,
+      plan.organizacionId,
+    );
+    return this.prisma.hitoPlan.create({
+      data: {
+        planId,
+        nombre,
+        descripcion: datos.descripcion?.trim() || null,
+        fechaObjetivo: this.validarFecha(datos.fechaObjetivo, 'fecha objetivo'),
+        estado: datos.estado?.trim() || 'PENDIENTE',
+        responsableId: datos.responsableId,
+      },
+      include: { responsable: true },
+    });
+  }
+
+  listarHitos(planId: string) {
+    return this.prisma.hitoPlan.findMany({
+      where: { planId },
+      include: { responsable: true },
+      orderBy: [{ fechaObjetivo: 'asc' }, { nombre: 'asc' }],
+    });
+  }
+
+  async actualizarHito(id: string, datos: ActualizarHitoDto) {
+    const hito = await this.prisma.hitoPlan.findUnique({
+      where: { id },
+      include: { plan: true },
+    });
+    if (!hito) return null;
+    if (datos.responsableId) {
+      await this.validarResponsableDeOrganizacion(
+        datos.responsableId,
+        hito.plan.organizacionId,
+      );
+    }
+    const data: Prisma.HitoPlanUncheckedUpdateInput = {};
+    if (datos.nombre !== undefined) {
+      const nombre = datos.nombre.trim();
+      if (!nombre)
+        throw new BadRequestException('El nombre no puede estar vacío');
+      data.nombre = nombre;
+    }
+    if (datos.descripcion !== undefined)
+      data.descripcion = datos.descripcion?.trim() || null;
+    if (datos.fechaObjetivo !== undefined)
+      data.fechaObjetivo = this.validarFecha(
+        datos.fechaObjetivo || undefined,
+        'fecha objetivo',
+      );
+    if (datos.estado !== undefined) data.estado = datos.estado.trim();
+    if (datos.responsableId !== undefined)
+      data.responsableId = datos.responsableId || null;
+    return this.prisma.hitoPlan.update({
+      where: { id },
+      data,
+      include: { responsable: true },
+    });
+  }
+
+  eliminarHito(id: string) {
+    return this.prisma.hitoPlan.delete({ where: { id } });
   }
 
   async crearEvidencia(organizacionId: string, datos: CrearEvidenciaDto) {
@@ -398,21 +520,19 @@ export class OrganizacionService {
       }))
     )
       throw new BadRequestException('La organización no existe');
-    if (
-      d.responsableId &&
-      !(await this.prisma.trabajador.findUnique({
-        where: { id: d.responsableId },
-      }))
-    )
-      throw new BadRequestException('El responsable no existe');
+    await this.validarResponsableDeOrganizacion(
+      d.responsableId,
+      organizacionId,
+    );
     return this.prisma.politica.create({
       data: {
         organizacionId,
         titulo,
         descripcion: d.descripcion?.trim() || null,
         version: d.version?.trim() || '1.0',
+        estado: d.estado?.trim() || 'BORRADOR',
         responsableId: d.responsableId,
-        fechaRevision: d.fechaRevision ? new Date(d.fechaRevision) : null,
+        fechaRevision: this.validarFecha(d.fechaRevision, 'fecha de revisión'),
       },
       include: { organizacion: true, responsable: true },
     });
@@ -433,7 +553,15 @@ export class OrganizacionService {
     });
   }
 
-  actualizarPolitica(id: string, d: ActualizarPoliticaDto) {
+  async actualizarPolitica(id: string, d: ActualizarPoliticaDto) {
+    const politica = await this.prisma.politica.findUnique({ where: { id } });
+    if (!politica) return null;
+    if (d.responsableId) {
+      await this.validarResponsableDeOrganizacion(
+        d.responsableId,
+        politica.organizacionId,
+      );
+    }
     const datosActualizados: Prisma.PoliticaUncheckedUpdateInput = {};
 
     if (d.titulo !== undefined) datosActualizados.titulo = d.titulo.trim();
@@ -445,7 +573,7 @@ export class OrganizacionService {
       datosActualizados.responsableId = d.responsableId || null;
     if (d.fechaRevision !== undefined)
       datosActualizados.fechaRevision = d.fechaRevision
-        ? new Date(d.fechaRevision)
+        ? this.validarFecha(d.fechaRevision, 'fecha de revisión')
         : null;
 
     return this.prisma.politica.update({
@@ -541,19 +669,21 @@ export class OrganizacionService {
 
   async crearRiesgo(d: CrearRiesgoDto) {
     const nombre = d.nombre?.trim();
-    if (!nombre || !d.probabilidad?.trim() || !d.impacto?.trim())
+    if (!nombre || d.probabilidad === undefined || d.impacto === undefined)
       throw new BadRequestException(
         'Nombre, probabilidad e impacto son obligatorios',
       );
+    this.validarEscalaRiesgo(d.probabilidad, 'probabilidad');
+    this.validarEscalaRiesgo(d.impacto, 'impacto');
     const tratamiento = this.validarTratamiento(d.tratamiento);
     await this.validarActivoYResponsable(d.activoId, d.responsableId);
-    return this.prisma.riesgo.create({
+    const riesgo = await this.prisma.riesgo.create({
       data: {
         activoId: d.activoId,
         nombre,
         descripcion: d.descripcion?.trim() || null,
-        probabilidad: d.probabilidad.trim(),
-        impacto: d.impacto.trim(),
+        probabilidad: d.probabilidad,
+        impacto: d.impacto,
         tratamiento,
         riesgoResidual: d.riesgoResidual?.trim() || null,
         aceptado: d.aceptado ?? false,
@@ -561,32 +691,40 @@ export class OrganizacionService {
       },
       include: { activo: true, responsable: true },
     });
+    return this.conPuntajeRiesgo(riesgo);
   }
 
-  listarRiesgos(estado?: string) {
-    return this.prisma.riesgo.findMany({
+  async listarRiesgos(estado?: string) {
+    const riesgos = await this.prisma.riesgo.findMany({
       where: estado ? { estado } : undefined,
       include: { activo: true, responsable: true },
       orderBy: { nombre: 'asc' },
     });
+    return riesgos.map((riesgo) => this.conPuntajeRiesgo(riesgo));
   }
 
-  consultarRiesgo(id: string) {
-    return this.prisma.riesgo.findUnique({
+  async consultarRiesgo(id: string) {
+    const riesgo = await this.prisma.riesgo.findUnique({
       where: { id },
       include: { activo: true, responsable: true },
     });
+    return riesgo ? this.conPuntajeRiesgo(riesgo) : null;
   }
 
-  actualizarRiesgo(id: string, d: ActualizarRiesgoDto) {
+  async actualizarRiesgo(id: string, d: ActualizarRiesgoDto) {
     const datosActualizados: Prisma.RiesgoUncheckedUpdateInput = {};
 
     if (d.nombre !== undefined) datosActualizados.nombre = d.nombre.trim();
     if (d.descripcion !== undefined)
       datosActualizados.descripcion = d.descripcion.trim() || null;
-    if (d.probabilidad !== undefined)
-      datosActualizados.probabilidad = d.probabilidad.trim();
-    if (d.impacto !== undefined) datosActualizados.impacto = d.impacto.trim();
+    if (d.probabilidad !== undefined) {
+      this.validarEscalaRiesgo(d.probabilidad, 'probabilidad');
+      datosActualizados.probabilidad = d.probabilidad;
+    }
+    if (d.impacto !== undefined) {
+      this.validarEscalaRiesgo(d.impacto, 'impacto');
+      datosActualizados.impacto = d.impacto;
+    }
     if (d.tratamiento !== undefined)
       datosActualizados.tratamiento = this.validarTratamiento(d.tratamiento);
     if (d.riesgoResidual !== undefined)
@@ -596,11 +734,29 @@ export class OrganizacionService {
     if (d.responsableId !== undefined)
       datosActualizados.responsableId = d.responsableId || null;
 
-    return this.prisma.riesgo.update({
+    const riesgo = await this.prisma.riesgo.update({
       where: { id },
       data: datosActualizados,
       include: { activo: true, responsable: true },
     });
+    return this.conPuntajeRiesgo(riesgo);
+  }
+
+  private validarEscalaRiesgo(valor: number, campo: string): void {
+    if (!Number.isInteger(valor) || valor < 1 || valor > 5) {
+      throw new BadRequestException(
+        `La ${campo} debe ser un valor entero entre 1 y 5`,
+      );
+    }
+  }
+
+  private conPuntajeRiesgo<T extends { probabilidad: number; impacto: number }>(
+    riesgo: T,
+  ) {
+    return {
+      ...riesgo,
+      puntajeInherente: riesgo.probabilidad * riesgo.impacto,
+    };
   }
 
   eliminarRiesgo(id: string) {
@@ -703,12 +859,15 @@ export class OrganizacionService {
     const nombre = datos.nombre?.trim();
     const tipo = datos.tipo?.trim().toUpperCase();
     const criticidad = datos.criticidad?.trim().toUpperCase() || 'MEDIA';
+    const clasificacion = datos.clasificacion?.trim().toUpperCase();
 
-    if (!nombre || !tipo) {
-      throw new BadRequestException('Nombre y tipo son obligatorios');
+    if (!nombre || !tipo || !clasificacion) {
+      throw new BadRequestException(
+        'Nombre, tipo y clasificación son obligatorios',
+      );
     }
 
-    this.validarClasificacionDeActivo(tipo, criticidad);
+    this.validarClasificacionDeActivo(tipo, criticidad, clasificacion);
     const unidad = await this.prisma.unidadOrganizativa.findUnique({
       where: { id: unidadOrganizativaId },
     });
@@ -725,15 +884,39 @@ export class OrganizacionService {
         unidadOrganizativaId,
         descripcion: datos.descripcion?.trim() || null,
         criticidad,
+        clasificacion,
         responsableId: datos.responsableId,
       },
       include: { unidadOrganizativa: true, responsable: true },
     });
   }
 
-  listarActivos(unidadId?: string) {
+  async listarActivos(unidadId?: string) {
+    let idsUnidad: string[] | undefined;
+    if (unidadId) {
+      const unidad = await this.prisma.unidadOrganizativa.findUnique({
+        where: { id: unidadId },
+        select: { id: true },
+      });
+      if (!unidad) throw new BadRequestException('La unidad no existe');
+      idsUnidad = [unidadId];
+      for (let inicio = 0; inicio < idsUnidad.length;) {
+        const actuales = idsUnidad.slice(inicio);
+        const hijos = await this.prisma.unidadOrganizativa.findMany({
+          where: { unidadPadreId: { in: actuales } },
+          select: { id: true },
+        });
+        const nuevos = hijos
+          .map(({ id }) => id)
+          .filter((id) => !idsUnidad!.includes(id));
+        idsUnidad.push(...nuevos);
+        inicio = idsUnidad.length;
+      }
+    }
     return this.prisma.activo.findMany({
-      where: unidadId ? { unidadOrganizativaId: unidadId } : undefined,
+      where: idsUnidad
+        ? { unidadOrganizativaId: { in: idsUnidad } }
+        : undefined,
       include: { unidadOrganizativa: true, responsable: true },
       orderBy: { nombre: 'asc' },
     });
@@ -764,13 +947,14 @@ export class OrganizacionService {
 
     const tipo = datos.tipo?.trim().toUpperCase();
     const criticidad = datos.criticidad?.trim().toUpperCase();
+    const clasificacion = datos.clasificacion?.trim().toUpperCase();
 
     if (datos.tipo !== undefined && !tipo) {
       throw new BadRequestException('El tipo no puede estar vacío');
     }
 
-    if (tipo || criticidad) {
-      this.validarClasificacionDeActivo(tipo, criticidad);
+    if (tipo || criticidad || clasificacion) {
+      this.validarClasificacionDeActivo(tipo, criticidad, clasificacion);
     }
 
     const datosActualizados: Prisma.ActivoUncheckedUpdateInput = {};
@@ -782,6 +966,8 @@ export class OrganizacionService {
     if (tipo !== undefined) datosActualizados.tipo = tipo;
     if (datos.criticidad !== undefined)
       datosActualizados.criticidad = criticidad;
+    if (clasificacion !== undefined)
+      datosActualizados.clasificacion = clasificacion;
     if (datos.responsableId !== undefined)
       datosActualizados.responsableId = datos.responsableId || null;
 
@@ -819,9 +1005,23 @@ export class OrganizacionService {
     }
   }
 
+  private async validarResponsableExistente(
+    responsableId?: string,
+  ): Promise<void> {
+    if (
+      responsableId &&
+      !(await this.prisma.trabajador.findUnique({
+        where: { id: responsableId },
+      }))
+    ) {
+      throw new BadRequestException('El responsable no existe');
+    }
+  }
+
   private validarClasificacionDeActivo(
     tipo: string | undefined,
     criticidad: string | undefined,
+    clasificacion?: string,
   ): void {
     const tiposPermitidos = ['HW', 'SW', 'DATO', 'SERVICIO'];
     const criticidadesPermitidas = ['BAJA', 'MEDIA', 'ALTA', 'CRITICA'];
@@ -833,6 +1033,14 @@ export class OrganizacionService {
     if (criticidad && !criticidadesPermitidas.includes(criticidad)) {
       throw new BadRequestException(
         'La criticidad debe ser BAJA, MEDIA, ALTA o CRITICA',
+      );
+    }
+    if (
+      clasificacion &&
+      !['PUBLICO', 'INTERNO', 'CONFIDENCIAL', 'SECRETO'].includes(clasificacion)
+    ) {
+      throw new BadRequestException(
+        'La clasificación debe ser PUBLICO, INTERNO, CONFIDENCIAL o SECRETO',
       );
     }
   }
@@ -889,14 +1097,40 @@ export class OrganizacionService {
       );
     }
 
+    const alcanceSgsi = this.validarAlcanceSgsi(datos.alcanceSgsi);
+
     return this.prisma.organizacion.create({
-      data: { nombre },
+      data: { nombre, alcanceSgsi },
     });
   }
 
   consultar(id: string) {
     return this.prisma.organizacion.findUnique({
       where: { id },
+    });
+  }
+
+  consultarMapa(id: string) {
+    return this.prisma.organizacion.findUnique({
+      where: { id },
+      include: {
+        unidades: {
+          include: { responsable: true },
+          orderBy: [{ tipo: 'asc' }, { nombre: 'asc' }],
+        },
+        procesos: {
+          include: {
+            responsable: { include: { unidadOrganizativa: true } },
+            asignacionesRaci: {
+              include: {
+                trabajador: { include: { unidadOrganizativa: true } },
+              },
+              orderBy: { tipoResponsabilidad: 'asc' },
+            },
+          },
+          orderBy: { nombre: 'asc' },
+        },
+      },
     });
   }
 
@@ -921,10 +1155,29 @@ export class OrganizacionService {
       datosActualizados.nombre = nombre;
     }
 
+    if (datos.alcanceSgsi !== undefined) {
+      datosActualizados.alcanceSgsi = this.validarAlcanceSgsi(
+        datos.alcanceSgsi,
+      );
+    }
+
     return this.prisma.organizacion.update({
       where: { id },
       data: datosActualizados,
     });
+  }
+
+  private validarAlcanceSgsi(valor: string | null | undefined) {
+    if (valor === undefined || valor === null) {
+      return valor ?? null;
+    }
+    const alcance = valor.trim();
+    if (!alcance || alcance.length > 2000) {
+      throw new BadRequestException(
+        'El alcance del SGSI debe tener entre 1 y 2000 caracteres',
+      );
+    }
+    return alcance;
   }
 
   async crearUnidad(organizacionId: string, datos: CrearUnidadOrganizativaDto) {
@@ -942,12 +1195,28 @@ export class OrganizacionService {
       throw new BadRequestException('El nombre de la unidad es obligatorio');
     }
 
+    await this.validarResponsableDeOrganizacion(
+      datos.responsableId,
+      organizacionId,
+    );
+    if (datos.unidadPadreId) {
+      const padre = await this.prisma.unidadOrganizativa.findUnique({
+        where: { id: datos.unidadPadreId },
+      });
+      if (!padre || padre.organizacionId !== organizacionId) {
+        throw new BadRequestException(
+          'La unidad padre no pertenece a la organización',
+        );
+      }
+    }
+
     return this.prisma.unidadOrganizativa.create({
       data: {
         organizacionId,
         unidadPadreId: datos.unidadPadreId,
         tipo: datos.tipo,
         nombre,
+        responsableId: datos.responsableId,
       },
     });
   }
@@ -956,6 +1225,7 @@ export class OrganizacionService {
     return this.prisma.unidadOrganizativa.findMany({
       where: { organizacionId },
       orderBy: { nombre: 'asc' },
+      include: { responsable: true },
     });
   }
 
@@ -966,6 +1236,7 @@ export class OrganizacionService {
         organizacion: true,
         unidadPadre: true,
         unidadesHijas: true,
+        responsable: true,
       },
     });
   }
@@ -994,9 +1265,20 @@ export class OrganizacionService {
       datosActualizados.nombre = nombre;
     }
 
+    if (datos.responsableId !== undefined) {
+      if (datos.responsableId) {
+        await this.validarResponsableDeOrganizacion(
+          datos.responsableId,
+          unidad.organizacionId,
+        );
+      }
+      datosActualizados.responsableId = datos.responsableId;
+    }
+
     return this.prisma.unidadOrganizativa.update({
       where: { id },
       data: datosActualizados,
+      include: { responsable: true },
     });
   }
 
@@ -1116,23 +1398,63 @@ export class OrganizacionService {
       throw new BadRequestException('El nombre del proceso es obligatorio');
     }
 
+    if (datos.organizacionId) {
+      const organizacion = await this.prisma.organizacion.findUnique({
+        where: { id: datos.organizacionId },
+      });
+      if (!organizacion)
+        throw new BadRequestException('La organización no existe');
+      await this.validarResponsableDeOrganizacion(
+        datos.responsableId,
+        datos.organizacionId,
+      );
+    } else {
+      await this.validarResponsableExistente(datos.responsableId);
+    }
     return this.prisma.proceso.create({
       data: {
+        organizacionId: datos.organizacionId,
         nombre,
         descripcion: datos.descripcion?.trim() || null,
+        version: datos.version?.trim() || '1.0',
+        estado: datos.estado?.trim() || 'BORRADOR',
+        responsableId: datos.responsableId,
+        fechaRevision: this.validarFecha(
+          datos.fechaRevision,
+          'fecha de revisión',
+        ),
       },
+      include: { responsable: { include: { unidadOrganizativa: true } } },
     });
   }
 
   listarProcesos() {
     return this.prisma.proceso.findMany({
       orderBy: { nombre: 'asc' },
+      include: {
+        responsable: { include: { unidadOrganizativa: true } },
+        asignacionesRaci: {
+          include: {
+            trabajador: { include: { unidadOrganizativa: true } },
+          },
+          orderBy: { tipoResponsabilidad: 'asc' },
+        },
+      },
     });
   }
 
   consultarProceso(id: string) {
     return this.prisma.proceso.findUnique({
       where: { id },
+      include: {
+        responsable: { include: { unidadOrganizativa: true } },
+        asignacionesRaci: {
+          include: {
+            trabajador: { include: { unidadOrganizativa: true } },
+          },
+          orderBy: { tipoResponsabilidad: 'asc' },
+        },
+      },
     });
   }
 
@@ -1165,9 +1487,31 @@ export class OrganizacionService {
       datosActualizados.estado = datos.estado;
     }
 
+    if (datos.version !== undefined)
+      datosActualizados.version = datos.version.trim();
+    if (datos.responsableId !== undefined) {
+      if (proceso.organizacionId) {
+        await this.validarResponsableDeOrganizacion(
+          datos.responsableId || undefined,
+          proceso.organizacionId,
+        );
+      } else {
+        await this.validarResponsableExistente(
+          datos.responsableId || undefined,
+        );
+      }
+      datosActualizados.responsableId = datos.responsableId || null;
+    }
+    if (datos.fechaRevision !== undefined)
+      datosActualizados.fechaRevision = this.validarFecha(
+        datos.fechaRevision || undefined,
+        'fecha de revisión',
+      );
+
     return this.prisma.proceso.update({
       where: { id },
       data: datosActualizados,
+      include: { responsable: { include: { unidadOrganizativa: true } } },
     });
   }
 

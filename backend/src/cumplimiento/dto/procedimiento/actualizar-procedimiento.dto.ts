@@ -8,4 +8,6 @@ export class ActualizarProcedimientoDto {
   estado?: string;
 
   responsableId?: string;
+
+  fechaRevision?: string | null;
 }

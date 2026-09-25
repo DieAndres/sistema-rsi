@@ -27,6 +27,7 @@ describe('Vulnerabilidades (e2e)', () => {
       .send({
         nombre: 'Servidor vulnerable',
         tipo: 'HW',
+        clasificacion: 'INTERNO',
         responsableId: trabajador.body.id,
       })
       .expect(201);

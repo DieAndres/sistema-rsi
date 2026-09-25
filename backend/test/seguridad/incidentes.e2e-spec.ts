@@ -27,6 +27,7 @@ describe('Incidentes (e2e)', () => {
       .send({
         nombre: 'Servidor afectado',
         tipo: 'HW',
+        clasificacion: 'INTERNO',
         responsableId: trabajador.body.id,
       })
       .expect(201);

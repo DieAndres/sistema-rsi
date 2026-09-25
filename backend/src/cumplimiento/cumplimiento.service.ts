@@ -8,6 +8,8 @@ import { CrearPlanDto } from './dto/plan/crear-plan.dto';
 import { ActualizarPlanDto } from './dto/plan/actualizar-plan.dto';
 import { CrearProcedimientoDto } from './dto/procedimiento/crear-procedimiento.dto';
 import { ActualizarProcedimientoDto } from './dto/procedimiento/actualizar-procedimiento.dto';
+import { CrearHitoDto } from './dto/hito/crear-hito.dto';
+import { ActualizarHitoDto } from './dto/hito/actualizar-hito.dto';
 
 @Injectable()
 export class CumplimientoService {
@@ -71,6 +73,22 @@ export class CumplimientoService {
 
   eliminarPlan(id: string) {
     return this.gestion.eliminarPlan(id);
+  }
+
+  crearHito(id: string, d: CrearHitoDto) {
+    return this.gestion.crearHito(id, d);
+  }
+
+  listarHitos(id: string) {
+    return this.gestion.listarHitos(id);
+  }
+
+  actualizarHito(id: string, d: ActualizarHitoDto) {
+    return this.gestion.actualizarHito(id, d);
+  }
+
+  eliminarHito(id: string) {
+    return this.gestion.eliminarHito(id);
   }
 
   crearProcedimiento(id: string, datos: CrearProcedimientoDto) {

@@ -6,4 +6,6 @@ export class ActualizarUnidadOrganizativaDto {
   tipo?: TipoUnidadOrganizativa;
 
   nombre?: string;
+
+  responsableId?: string | null;
 }

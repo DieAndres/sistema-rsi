@@ -6,4 +6,6 @@ export class CrearUnidadOrganizativaDto {
   tipo!: TipoUnidadOrganizativa;
 
   nombre!: string;
+
+  responsableId?: string;
 }

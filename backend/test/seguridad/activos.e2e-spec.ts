@@ -7,7 +7,9 @@ describe('Activos (e2e)', () => {
   let app: INestApplication<App>;
   let unidadId: string;
   let otraUnidadId: string;
+  let unidadHijaId: string;
   let responsableId: string;
+  let responsableDeUnidadHijaId: string;
   let responsableDeOtraUnidadId: string;
 
   beforeAll(async () => {
@@ -28,8 +30,18 @@ describe('Activos (e2e)', () => {
       .send({ tipo: 'SECTOR', nombre: 'Sector externo' })
       .expect(201);
 
+    const unidadHija = await request(app.getHttpServer())
+      .post(`/api/v1/organizaciones/${organizacion.body.id}/unidades`)
+      .send({
+        tipo: 'SECTOR',
+        nombre: 'Sector dependiente',
+        unidadPadreId: primeraUnidad.body.id,
+      })
+      .expect(201);
+
     unidadId = primeraUnidad.body.id;
     otraUnidadId = segundaUnidad.body.id;
+    unidadHijaId = unidadHija.body.id;
 
     const trabajador = await request(app.getHttpServer())
       .post(`/api/v1/organizaciones/unidades/${unidadId}/trabajadores`)
@@ -43,6 +55,12 @@ describe('Activos (e2e)', () => {
 
     responsableId = trabajador.body.id;
     responsableDeOtraUnidadId = otroTrabajador.body.id;
+
+    const trabajadorHijo = await request(app.getHttpServer())
+      .post(`/api/v1/organizaciones/unidades/${unidadHijaId}/trabajadores`)
+      .send({ nombre: 'Responsable del sector', cargo: 'Técnico' })
+      .expect(201);
+    responsableDeUnidadHijaId = trabajadorHijo.body.id;
   });
 
   afterAll(async () => {
@@ -51,17 +69,25 @@ describe('Activos (e2e)', () => {
 
   it('crea un activo con responsable de la misma unidad', async () => {
     const respuesta = await request(app.getHttpServer())
-      .post(`/api/v1/seguridad/unidades/${unidadId}/activos`)
+      .post(`/api/v1/seguridad/unidades/${unidadHijaId}/activos`)
       .send({
         nombre: 'Servidor principal',
         tipo: 'HW',
         criticidad: 'ALTA',
-        responsableId,
+        clasificacion: 'INTERNO',
+        responsableId: responsableDeUnidadHijaId,
       })
       .expect(201);
 
-    expect(respuesta.body.unidadOrganizativaId).toBe(unidadId);
-    expect(respuesta.body.responsableId).toBe(responsableId);
+    expect(respuesta.body.unidadOrganizativaId).toBe(unidadHijaId);
+    expect(respuesta.body.responsableId).toBe(responsableDeUnidadHijaId);
+
+    const activosDelArbol = await request(app.getHttpServer())
+      .get(`/api/v1/seguridad/activos?unidadId=${unidadId}`)
+      .expect(200);
+    expect(activosDelArbol.body.map((activo) => activo.id)).toContain(
+      respuesta.body.id,
+    );
   });
 
   it('rechaza un activo con unidad inexistente', async () => {
@@ -79,6 +105,7 @@ describe('Activos (e2e)', () => {
       .send({
         nombre: 'Activo inválido',
         tipo: 'SW',
+        clasificacion: 'INTERNO',
         responsableId: '00000000-0000-0000-0000-000000000000',
       })
       .expect(400);
@@ -92,6 +119,7 @@ describe('Activos (e2e)', () => {
       .send({
         nombre: 'Activo inválido',
         tipo: 'DATO',
+        clasificacion: 'INTERNO',
         responsableId: responsableDeOtraUnidadId,
       })
       .expect(400);
