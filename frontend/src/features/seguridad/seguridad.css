@@ -1,0 +1,8 @@
+.formulario-activo { display: grid; gap: 12px; grid-template-columns: 2fr 1fr 1fr 1fr 2fr; margin: 24px 0 28px; }
+.formulario-activo h3, .formulario-activo .campo-ancho { grid-column: 1 / -1; margin-bottom: 0; }
+.formulario-activo label { color: #435660; display: grid; font-size: 12px; font-weight: 700; gap: 6px; }
+.formulario-activo input, .formulario-activo select, .formulario-activo textarea { border: 1px solid #cdd8dc; border-radius: 7px; font: inherit; padding: 8px 10px; }
+.formulario-vulnerabilidad { display: grid; gap: 12px; grid-template-columns: 2fr 2fr 1fr 1fr 1fr 2fr; margin: 24px 0 28px; }
+.formulario-vulnerabilidad h3, .formulario-vulnerabilidad .campo-ancho { grid-column: 1 / -1; margin-bottom: 0; }
+.formulario-vulnerabilidad label { color: #435660; display: grid; font-size: 12px; font-weight: 700; gap: 6px; }
+.formulario-vulnerabilidad input, .formulario-vulnerabilidad select, .formulario-vulnerabilidad textarea { border: 1px solid #cdd8dc; border-radius: 7px; font: inherit; padding: 8px 10px; }
