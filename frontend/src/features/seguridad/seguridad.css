@@ -6,3 +6,12 @@
 .formulario-vulnerabilidad h3, .formulario-vulnerabilidad .campo-ancho { grid-column: 1 / -1; margin-bottom: 0; }
 .formulario-vulnerabilidad label { color: #435660; display: grid; font-size: 12px; font-weight: 700; gap: 6px; }
 .formulario-vulnerabilidad input, .formulario-vulnerabilidad select, .formulario-vulnerabilidad textarea { border: 1px solid #cdd8dc; border-radius: 7px; font: inherit; padding: 8px 10px; }
+.formulario-riesgo { display: grid; gap: 12px; grid-template-columns: 2fr 2fr 1fr 1fr 2fr 1fr; margin: 24px 0 28px; }
+.formulario-riesgo h3, .formulario-riesgo .campo-ancho { grid-column: 1 / -1; margin-bottom: 0; }
+.formulario-riesgo label { color: #435660; display: grid; font-size: 12px; font-weight: 700; gap: 6px; }
+.formulario-riesgo input, .formulario-riesgo select, .formulario-riesgo textarea { border: 1px solid #cdd8dc; border-radius: 7px; font: inherit; padding: 8px 10px; }
+.check-riesgo { align-items: center; display: flex !important; gap: 8px !important; }
+.formulario-incidente { display: grid; gap: 12px; grid-template-columns: 2fr 2fr 1fr 1fr 2fr; margin: 24px 0 28px; }
+.formulario-incidente h3, .formulario-incidente .campo-ancho { grid-column: 1 / -1; margin-bottom: 0; }
+.formulario-incidente label { color: #435660; display: grid; font-size: 12px; font-weight: 700; gap: 6px; }
+.formulario-incidente input, .formulario-incidente select, .formulario-incidente textarea { border: 1px solid #cdd8dc; border-radius: 7px; font: inherit; padding: 8px 10px; }
