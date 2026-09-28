@@ -12,5 +12,7 @@ uploads/
 .codex/
 backend/dev.db
 docs/99-Bitacora-Trabajo.md
+/docs/dudas-profesor-modelo-datos.md
+/docs/consultas-docente.md
 plantilla/
 backend/prisma/seed-soa-demo.mjs

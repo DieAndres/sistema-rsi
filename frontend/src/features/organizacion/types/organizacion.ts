@@ -9,7 +9,7 @@ export type Trabajador = {
   nombre: string
   cargo: string
   correo?: string | null
-  unidadOrganizativa?: { id: string; nombre: string }
+  unidadOrganizativa?: { id: string; nombre: string; organizacionId?: string }
 }
 
 export type TipoUnidad = 'AREA' | 'DIVISION' | 'DEPARTAMENTO' | 'SECTOR'
