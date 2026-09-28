@@ -1,0 +1,14 @@
+import { useEffect, useState } from 'react'
+import { actualizarOrganizacion, crearOrganizacion, listarOrganizaciones } from '../api/organizacionApi'
+import type { Organizacion } from '../types/organizacion'
+import '../organizacion.css'
+
+export function OrganizacionesPage() {
+  const [organizaciones, setOrganizaciones] = useState<Organizacion[]>([]); const [editando, setEditando] = useState<Organizacion | null>(null); const [nombre, setNombre] = useState(''); const [alcance, setAlcance] = useState(''); const [error, setError] = useState('')
+  async function cargar() { setOrganizaciones(await listarOrganizaciones(new AbortController().signal)) }
+  useEffect(() => { async function cargarInicial() { try { await cargar() } catch { setError('No se pudieron cargar las organizaciones.') } } void cargarInicial() }, [])
+  function limpiar() { setEditando(null); setNombre(''); setAlcance('') }
+  function editar(o: Organizacion) { setEditando(o); setNombre(o.nombre); setAlcance(o.alcanceSgsi ?? '') }
+  async function guardar(e: React.FormEvent) { e.preventDefault(); if (!nombre.trim()) return; try { const datos = { nombre: nombre.trim(), alcanceSgsi: alcance.trim() }; if (editando) await actualizarOrganizacion(editando.id, datos); else await crearOrganizacion(datos); await cargar(); limpiar() } catch { setError('No se pudo guardar la organización.') } }
+  return <div className="aplicacion"><header className="barra-superior"><span className="marca"><span className="marca-simbolo">R</span><span className="marca-texto"><strong>RSI</strong><small>Gestión integrada</small></span></span><span className="entorno">Sistema de gestión</span></header><main className="contenido"><div className="encabezado-pagina"><div><p className="sobretitulo">ORGANIZACIÓN</p><h1>Organizaciones</h1><p className="introduccion">Registrá las organizaciones sobre las que se gestionará la información.</p></div></div>{error && <p className="mensaje mensaje-error">{error}</p>}<section className="panel-estructura"><form className="formulario-organizacion" onSubmit={guardar}><h3>{editando ? 'Editar organización' : 'Nueva organización'}</h3><label>Nombre<input value={nombre} onChange={(e) => setNombre(e.target.value)} required /></label><label>Alcance del SGSI<textarea value={alcance} onChange={(e) => setAlcance(e.target.value)} rows={3} /></label><div className="formulario-acciones"><button type="submit">{editando ? 'Guardar cambios' : 'Crear organización'}</button>{editando && <button type="button" onClick={limpiar}>Cancelar</button>}</div></form><div className="lista-trabajadores">{organizaciones.map((o) => <article className="unidad-tarjeta" key={o.id}><div className="unidad-detalle"><h3>{o.nombre}</h3><p>{o.alcanceSgsi || 'Sin alcance del SGSI definido'}</p></div><button type="button" onClick={() => editar(o)}>Editar</button></article>)}</div></section></main></div>
+}
