@@ -1,8 +1,8 @@
 import { apiRequest } from '../../organizacion/api/organizacionApi'
 import type { Trabajador, Unidad } from '../../organizacion/types/organizacion'
 
-export type Activo = { id: string; nombre: string; descripcion?: string | null; tipo: string; criticidad: string; clasificacion: string; unidadOrganizativa: Unidad; responsable?: Trabajador | null }
-export type DatosActivo = { nombre: string; descripcion?: string; tipo: string; criticidad: string; clasificacion: string; responsableId?: string }
+export type Activo = { id: string; nombre: string; descripcion?: string | null; tipo: string; criticidad: string; clasificacion: string; unidadOrganizativa: Unidad; responsable?: Trabajador | null; procesos?: { id: string; nombre: string }[] }
+export type DatosActivo = { nombre: string; descripcion?: string; tipo: string; criticidad: string; clasificacion: string; responsableId?: string; procesoIds?: string[] }
 export function listarActivos(unidadId?: string) { return apiRequest<Activo[]>(`/api/v1/seguridad/activos${unidadId ? `?unidadId=${encodeURIComponent(unidadId)}` : ''}`, { method: 'GET' }) }
 export function crearActivo(unidadId: string, datos: DatosActivo) { return apiRequest<Activo>(`/api/v1/seguridad/unidades/${unidadId}/activos`, { method: 'POST', body: JSON.stringify(datos) }) }
 export function actualizarActivo(id: string, datos: DatosActivo) { return apiRequest<Activo>(`/api/v1/seguridad/activos/${id}`, { method: 'PATCH', body: JSON.stringify(datos) }) }

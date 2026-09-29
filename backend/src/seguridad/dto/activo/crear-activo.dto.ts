@@ -10,4 +10,6 @@ export class CrearActivoDto {
   clasificacion!: string;
 
   responsableId?: string;
+
+  procesoIds?: string[];
 }

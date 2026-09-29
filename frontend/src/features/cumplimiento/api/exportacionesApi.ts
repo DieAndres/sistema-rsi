@@ -1,10 +1,12 @@
+import { obtenerToken } from '../../../shared/api/apiGet'
+
 async function apiText(ruta: string) {
-  const respuesta = await fetch(ruta)
+  const respuesta = await fetch(ruta, { headers: { Authorization: `Bearer ${obtenerToken() ?? ''}` } })
   if (!respuesta.ok) throw new Error(`Error ${respuesta.status}`)
   return { contenido: await respuesta.text() }
 }
 async function apiControlesMarkdown(ruta: string) {
-  const respuesta = await fetch(ruta)
+  const respuesta = await fetch(ruta, { headers: { Authorization: `Bearer ${obtenerToken() ?? ''}` } })
   if (!respuesta.ok) throw new Error(`Error ${respuesta.status}`)
   const controles = await respuesta.json() as Array<{ controlId: string; tema: string; evaluacion?: { aplica?: boolean; estado?: string } }>
   const filas = controles.map(control => `| ${control.controlId} | ${control.tema} | ${control.evaluacion?.aplica ? 'Sí' : 'No'} | ${control.evaluacion?.estado ?? 'Sin evaluación'} |`).join('\n')

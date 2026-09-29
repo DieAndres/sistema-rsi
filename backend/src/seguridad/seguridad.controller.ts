@@ -8,7 +8,9 @@ import {
   Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { SeguridadService } from './seguridad.service';
 import { CrearActivoDto } from './dto/activo/crear-activo.dto';
 import { ActualizarActivoDto } from './dto/activo/actualizar-activo.dto';
@@ -30,8 +32,19 @@ export class SeguridadController {
     return this.service.crearActivo(id, d);
   }
 
-  @Get('activos') listarActivos(@Query('unidadId') unidadId?: string) {
-    return this.service.listarActivos(unidadId);
+  @Get('activos') listarActivos(
+    @Query('unidadId') unidadId: string | undefined,
+    @Req()
+    request?: Request & {
+      user?: { rol?: string; unidadOrganizativaId?: string | null };
+    },
+  ) {
+    const unidadAlcance = ['DUENO_UNIDAD', 'LECTOR'].includes(
+      request?.user?.rol ?? '',
+    )
+      ? (request?.user?.unidadOrganizativaId ?? undefined)
+      : unidadId;
+    return this.service.listarActivos(unidadAlcance);
   }
 
   @Get('activos/:id') async consultarActivo(@Param('id') id: string) {
@@ -60,8 +73,17 @@ export class SeguridadController {
   @Get('vulnerabilidades') listarVulnerabilidades(
     @Query('estado') estado?: string,
     @Query('cvssMin') cvssMin?: string,
+    @Req()
+    request?: Request & {
+      user?: { rol?: string; unidadOrganizativaId?: string | null };
+    },
   ) {
-    return this.service.listarVulnerabilidades(estado, cvssMin);
+    const unidadId = ['DUENO_UNIDAD', 'LECTOR'].includes(
+      request?.user?.rol ?? '',
+    )
+      ? (request?.user?.unidadOrganizativaId ?? undefined)
+      : undefined;
+    return this.service.listarVulnerabilidades(estado, cvssMin, unidadId);
   }
 
   @Get('vulnerabilidades/:id') consultarVulnerabilidad(
@@ -87,8 +109,19 @@ export class SeguridadController {
     return this.service.crearRiesgo(d);
   }
 
-  @Get('riesgos') listarRiesgos(@Query('estado') estado?: string) {
-    return this.service.listarRiesgos(estado);
+  @Get('riesgos') listarRiesgos(
+    @Query('estado') estado?: string,
+    @Req()
+    request?: Request & {
+      user?: { rol?: string; unidadOrganizativaId?: string | null };
+    },
+  ) {
+    const unidadId = ['DUENO_UNIDAD', 'LECTOR'].includes(
+      request?.user?.rol ?? '',
+    )
+      ? (request?.user?.unidadOrganizativaId ?? undefined)
+      : undefined;
+    return this.service.listarRiesgos(estado, unidadId);
   }
 
   @Get('riesgos/:id') consultarRiesgo(@Param('id') id: string) {
@@ -113,8 +146,17 @@ export class SeguridadController {
   @Get('incidentes') listarIncidentes(
     @Query('estado') estado?: string,
     @Query('severidad') severidad?: string,
+    @Req()
+    request?: Request & {
+      user?: { rol?: string; unidadOrganizativaId?: string | null };
+    },
   ) {
-    return this.service.listarIncidentes(estado, severidad);
+    const unidadId = ['DUENO_UNIDAD', 'LECTOR'].includes(
+      request?.user?.rol ?? '',
+    )
+      ? (request?.user?.unidadOrganizativaId ?? undefined)
+      : undefined;
+    return this.service.listarIncidentes(estado, severidad, unidadId);
   }
 
   @Get('incidentes/:id') consultarIncidente(@Param('id') id: string) {

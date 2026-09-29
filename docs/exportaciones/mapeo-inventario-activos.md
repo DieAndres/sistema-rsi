@@ -13,6 +13,6 @@ Fuente: `plantilla/isaca/02-registro-activos.md`, sección 4. El archivo descarg
 | Crítico (S/N) | `Activo.criticidad` | `ALTA` o `CRITICA` → `S`; otras → `N`. Regla de este exportador, sujeta a revisión. |
 | Software/versión | Sin campo en la base | Vacío; no se infiere del nombre o descripción. |
 
-La consulta se limita a los activos de la organización indicada y se ordena por nombre e ID. Si la organización no existe, responde 404. La plantilla también pide una matriz proceso-activo con RTO: no se genera porque el modelo actual no contiene esas relaciones ni el RTO. Antes de usar el documento como evidencia, revisar cobertura de infraestructura, responsable, clasificación y campos vacíos contra el despliegue real.
+La consulta se limita a los activos de la organización indicada y se ordena por nombre e ID. Si la organización no existe, responde 404. Los activos pueden relacionarse con uno o varios procesos; esa relación permite identificar qué procesos soporta cada activo. La matriz crítica presenta proceso, activo relacionado y criticidad. Antes de usar el documento como evidencia, revisar cobertura de infraestructura, responsable, clasificación y campos vacíos contra el despliegue real.
 
 Ruta: `GET /api/v1/exportaciones/organizaciones/{id}/inventario-activos`. Descarga Markdown `inventario-activos-borrador.md`. Esta ruta todavía debe integrarse con autorización y auditoría antes de usar datos no sintéticos.

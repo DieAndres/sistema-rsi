@@ -37,8 +37,8 @@ export class SeguridadService {
     return this.gestion.crearVulnerabilidad(d);
   }
 
-  listarVulnerabilidades(estado?: string, cvssMin?: string) {
-    return this.gestion.listarVulnerabilidades(estado, cvssMin);
+  listarVulnerabilidades(estado?: string, cvssMin?: string, unidadId?: string) {
+    return this.gestion.listarVulnerabilidades(estado, cvssMin, unidadId);
   }
 
   consultarVulnerabilidad(id: string) {
@@ -57,8 +57,8 @@ export class SeguridadService {
     return this.gestion.crearRiesgo(d);
   }
 
-  listarRiesgos(estado?: string) {
-    return this.gestion.listarRiesgos(estado);
+  listarRiesgos(estado?: string, unidadId?: string) {
+    return this.gestion.listarRiesgos(estado, unidadId);
   }
 
   consultarRiesgo(id: string) {
@@ -77,8 +77,8 @@ export class SeguridadService {
     return this.gestion.crearIncidente(d);
   }
 
-  listarIncidentes(estado?: string, severidad?: string) {
-    return this.gestion.listarIncidentes(estado, severidad);
+  listarIncidentes(estado?: string, severidad?: string, unidadId?: string) {
+    return this.gestion.listarIncidentes(estado, severidad, unidadId);
   }
 
   consultarIncidente(id: string) {

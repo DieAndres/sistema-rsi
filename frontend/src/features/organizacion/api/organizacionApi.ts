@@ -1,4 +1,5 @@
-import { apiGet } from '../../../shared/api/apiGet'
+import { apiGet, obtenerToken } from '../../../shared/api/apiGet'
+import { obtenerUsuarioActual } from '../../../shared/api/apiGet'
 import type { Organizacion, Trabajador, Unidad } from '../types/organizacion'
 
 export type Proceso = { id: string; organizacionId: string; nombre: string; descripcion?: string | null; version: string; estado: string; responsable?: Trabajador | null }
@@ -6,10 +7,18 @@ export type DatosProceso = { nombre: string; descripcion?: string; version?: str
 export type TipoRaci = 'R' | 'A' | 'C' | 'I'
 export type AsignacionRaci = { id: string; procesoId: string; trabajadorId: string; tipoResponsabilidad: TipoRaci; proceso: Proceso; trabajador: Trabajador }
 
+export async function listarOrganizaciones(signal: AbortSignal) {
+  const organizaciones = await apiGet<Organizacion[]>('/api/v1/organizaciones', signal)
+  const usuario = obtenerUsuarioActual()
+  return ['DUENO_UNIDAD', 'LECTOR'].includes(usuario?.rol ?? '') && usuario?.organizacionId
+    ? organizaciones.filter((organizacion) => organizacion.id === usuario.organizacionId)
+    : organizaciones
+}
+
 export async function apiRequest<T>(ruta: string, init: RequestInit): Promise<T> {
   const respuesta = await fetch(ruta, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...init.headers },
+    headers: { 'Content-Type': 'application/json', ...(obtenerToken() ? { Authorization: `Bearer ${obtenerToken()}` } : {}), ...init.headers },
   })
 
   if (!respuesta.ok) {
@@ -19,9 +28,6 @@ export async function apiRequest<T>(ruta: string, init: RequestInit): Promise<T>
   return respuesta.json() as Promise<T>
 }
 
-export function listarOrganizaciones(signal: AbortSignal) {
-  return apiGet<Organizacion[]>('/api/v1/organizaciones', signal)
-}
 
 export function crearOrganizacion(datos: { nombre: string; alcanceSgsi?: string }) { return apiRequest<Organizacion>('/api/v1/organizaciones', { method: 'POST', body: JSON.stringify(datos) }) }
 export function actualizarOrganizacion(id: string, datos: { nombre: string; alcanceSgsi?: string }) { return apiRequest<Organizacion>(`/api/v1/organizaciones/${id}`, { method: 'PATCH', body: JSON.stringify(datos) }) }

@@ -76,8 +76,9 @@ export class OrganizacionService {
     });
   }
 
-  listarProcedimientos() {
+  listarProcedimientos(organizacionId?: string) {
     return this.prisma.procedimiento.findMany({
+      where: organizacionId ? { organizacionId } : undefined,
       include: { organizacion: true, politica: true, responsable: true },
       orderBy: { nombre: 'asc' },
     });
@@ -191,8 +192,9 @@ export class OrganizacionService {
     });
   }
 
-  listarPlanes() {
+  listarPlanes(organizacionId?: string) {
     return this.prisma.plan.findMany({
+      where: organizacionId ? { organizacionId } : undefined,
       include: {
         organizacion: true,
         responsable: true,
@@ -459,8 +461,9 @@ export class OrganizacionService {
     });
   }
 
-  listarEvidencias() {
+  listarEvidencias(organizacionId?: string) {
     return this.prisma.evidencia.findMany({
+      where: organizacionId ? { organizacionId } : undefined,
       include: {
         organizacion: true,
         responsable: true,
@@ -621,9 +624,10 @@ export class OrganizacionService {
     });
   }
 
-  listarVulnerabilidades(estado?: string, cvssMin?: string) {
+  listarVulnerabilidades(estado?: string, cvssMin?: string, unidadId?: string) {
     return this.prisma.vulnerabilidad.findMany({
       where: {
+        ...(unidadId ? { activo: { unidadOrganizativaId: unidadId } } : {}),
         ...(estado ? { estado } : {}),
         ...(cvssMin !== undefined ? { cvss: { gte: Number(cvssMin) } } : {}),
       },
@@ -694,9 +698,12 @@ export class OrganizacionService {
     return this.conPuntajeRiesgo(riesgo);
   }
 
-  async listarRiesgos(estado?: string) {
+  async listarRiesgos(estado?: string, unidadId?: string) {
     const riesgos = await this.prisma.riesgo.findMany({
-      where: estado ? { estado } : undefined,
+      where: {
+        ...(estado ? { estado } : {}),
+        ...(unidadId ? { activo: { unidadOrganizativaId: unidadId } } : {}),
+      },
       include: { activo: true, responsable: true },
       orderBy: { nombre: 'asc' },
     });
@@ -811,9 +818,10 @@ export class OrganizacionService {
     });
   }
 
-  listarIncidentes(estado?: string, severidad?: string) {
+  listarIncidentes(estado?: string, severidad?: string, unidadId?: string) {
     return this.prisma.incidente.findMany({
       where: {
+        ...(unidadId ? { activo: { unidadOrganizativaId: unidadId } } : {}),
         ...(estado ? { estado } : {}),
         ...(severidad ? { severidad } : {}),
       },
@@ -886,8 +894,11 @@ export class OrganizacionService {
         criticidad,
         clasificacion,
         responsableId: datos.responsableId,
+        procesos: datos.procesoIds?.length
+          ? { connect: datos.procesoIds.map((id) => ({ id })) }
+          : undefined,
       },
-      include: { unidadOrganizativa: true, responsable: true },
+      include: { unidadOrganizativa: true, responsable: true, procesos: true },
     });
   }
 
@@ -917,7 +928,7 @@ export class OrganizacionService {
       where: idsUnidad
         ? { unidadOrganizativaId: { in: idsUnidad } }
         : undefined,
-      include: { unidadOrganizativa: true, responsable: true },
+      include: { unidadOrganizativa: true, responsable: true, procesos: true },
       orderBy: { nombre: 'asc' },
     });
   }
@@ -925,7 +936,7 @@ export class OrganizacionService {
   consultarActivo(id: string) {
     return this.prisma.activo.findUnique({
       where: { id },
-      include: { unidadOrganizativa: true, responsable: true },
+      include: { unidadOrganizativa: true, responsable: true, procesos: true },
     });
   }
 
@@ -970,11 +981,15 @@ export class OrganizacionService {
       datosActualizados.clasificacion = clasificacion;
     if (datos.responsableId !== undefined)
       datosActualizados.responsableId = datos.responsableId || null;
+    if (datos.procesoIds !== undefined)
+      datosActualizados.procesos = {
+        set: datos.procesoIds.map((procesoId) => ({ id: procesoId })),
+      };
 
     return this.prisma.activo.update({
       where: { id },
       data: datosActualizados,
-      include: { unidadOrganizativa: true, responsable: true },
+      include: { unidadOrganizativa: true, responsable: true, procesos: true },
     });
   }
 
@@ -1325,8 +1340,9 @@ export class OrganizacionService {
     });
   }
 
-  listarTrabajadores() {
+  listarTrabajadores(unidadOrganizativaId?: string) {
     return this.prisma.trabajador.findMany({
+      where: unidadOrganizativaId ? { unidadOrganizativaId } : undefined,
       orderBy: { nombre: 'asc' },
       include: { unidadOrganizativa: true },
     });
@@ -1428,8 +1444,9 @@ export class OrganizacionService {
     });
   }
 
-  listarProcesos() {
+  listarProcesos(organizacionId?: string) {
     return this.prisma.proceso.findMany({
+      where: organizacionId ? { organizacionId } : undefined,
       orderBy: { nombre: 'asc' },
       include: {
         responsable: { include: { unidadOrganizativa: true } },
