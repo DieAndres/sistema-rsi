@@ -33,6 +33,19 @@ export class AuthGuard implements CanActivate {
     if (!token) throw new UnauthorizedException('Se requiere autenticación.');
 
     request.user = await this.auth.obtenerPorToken(token);
+    const user = request.user as { rol?: string; mfaConfirmado?: boolean };
+    const permiteConfiguracionMfa =
+      request.path.endsWith('/auth/mfa/setup') ||
+      request.path.endsWith('/auth/mfa/confirm') ||
+      request.path.endsWith('/auth/me') ||
+      request.path.endsWith('/auth/logout');
+    if (
+      ['ADMINISTRADOR', 'RSI'].includes(user.rol ?? '') &&
+      !user.mfaConfirmado &&
+      !permiteConfiguracionMfa
+    ) {
+      throw new UnauthorizedException('MFA pendiente de configuración.');
+    }
     return true;
   }
 }

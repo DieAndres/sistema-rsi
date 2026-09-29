@@ -26,16 +26,20 @@ type Pantalla = 'dashboard' | 'mfa' | 'usuarios' | 'auditoria' | 'organizaciones
 function App() {
   const [autenticado, setAutenticado] = useState(Boolean(obtenerToken()))
   const [usuario, setUsuario] = useState(obtenerUsuarioActual())
+  const [pantalla, setPantalla] = useState<Pantalla>('dashboard')
   const esAdmin = usuario?.rol === 'ADMINISTRADOR'
   const puedeGestionarOrganizacion = esAdmin || usuario?.rol === 'RSI'
+  const mfaPendiente = ['ADMINISTRADOR', 'RSI'].includes(usuario?.rol ?? '') && usuario?.mfaConfirmado === false
 
   useEffect(() => {
-    if (!obtenerToken() || usuario) return
-    void apiGet<typeof usuario>('/api/v1/auth/me', new AbortController().signal).then(setUsuario).catch(() => undefined)
-  }, [usuario])
-  const [pantalla, setPantalla] = useState<Pantalla>('dashboard')
+    if (!obtenerToken()) return
+    void apiGet<typeof usuario>('/api/v1/auth/me', new AbortController().signal).then((actual) => {
+      setUsuario(actual)
+      if (['ADMINISTRADOR', 'RSI'].includes(actual?.rol ?? '') && actual?.mfaConfirmado === false) setPantalla('mfa')
+    }).catch(() => undefined)
+  }, [])
 
-  if (!autenticado) return <LoginPage onLogin={() => { setPantalla('dashboard'); setAutenticado(true) }} />
+  if (!autenticado) return <LoginPage onLogin={(mfaSetupRequired, actual) => { setUsuario(actual); setPantalla(mfaSetupRequired ? 'mfa' : 'dashboard'); setAutenticado(true) }} />
 
   async function salir() {
     const token = obtenerToken()
@@ -48,10 +52,10 @@ function App() {
 
   return <div className={`${usuario?.rol === 'DUENO_UNIDAD' ? 'rol-dueno-unidad' : ''} ${usuario?.rol === 'LECTOR' ? 'rol-lector' : ''}`}>
     <nav className="navegacion-app">
-      <div className="menu-grupo"><span>Inicio</span><button type="button" onClick={() => setPantalla('dashboard')}>Dashboard</button><button type="button" onClick={() => setPantalla('mfa')}>Seguridad de cuenta</button>{usuario?.rol === 'ADMINISTRADOR' && <><button type="button" onClick={() => setPantalla('usuarios')}>Usuarios</button><button type="button" onClick={() => setPantalla('auditoria')}>Auditoría</button></>}<button type="button" onClick={() => void salir()}>Cerrar sesión</button></div>
-      <div className="menu-grupo"><span>Organización</span>{puedeGestionarOrganizacion && <><button type="button" onClick={() => setPantalla('organizaciones')}>Organizaciones</button><button type="button" onClick={() => setPantalla('organigrama')}>Unidades</button></>}<button type="button" onClick={() => setPantalla('trabajadores')}>Trabajadores</button><button type="button" onClick={() => setPantalla('procesos')}>Procesos</button>{puedeGestionarOrganizacion && <button type="button" onClick={() => setPantalla('raci')}>RACI</button>}</div>
+      <div className="menu-grupo"><span>Inicio</span>{!mfaPendiente && <button type="button" onClick={() => setPantalla('dashboard')}>Dashboard</button>}<button type="button" onClick={() => setPantalla('mfa')}>Seguridad de cuenta</button>{!mfaPendiente && usuario?.rol === 'ADMINISTRADOR' && <><button type="button" onClick={() => setPantalla('usuarios')}>Usuarios</button><button type="button" onClick={() => setPantalla('auditoria')}>Auditoría</button></>}<button type="button" onClick={() => void salir()}>Cerrar sesión</button></div>
+      {!mfaPendiente && <><div className="menu-grupo"><span>Organización</span>{puedeGestionarOrganizacion && <><button type="button" onClick={() => setPantalla('organizaciones')}>Organizaciones</button><button type="button" onClick={() => setPantalla('organigrama')}>Unidades</button></>}<button type="button" onClick={() => setPantalla('trabajadores')}>Trabajadores</button><button type="button" onClick={() => setPantalla('procesos')}>Procesos</button>{puedeGestionarOrganizacion && <button type="button" onClick={() => setPantalla('raci')}>RACI</button>}</div>
       <div className="menu-grupo"><span>Seguridad</span><button type="button" onClick={() => setPantalla('activos')}>Activos</button><button type="button" onClick={() => setPantalla('vulnerabilidades')}>Vulnerabilidades</button><button type="button" onClick={() => setPantalla('riesgos')}>Riesgos</button><button type="button" onClick={() => setPantalla('incidentes')}>Incidentes</button></div>
-      <div className="menu-grupo"><span>Cumplimiento</span><button type="button" onClick={() => setPantalla('politicas')}>Políticas</button><button type="button" onClick={() => setPantalla('evidencias')}>Evidencias</button><button type="button" onClick={() => setPantalla('soa')}>Evaluación SOA</button><button type="button" onClick={() => setPantalla('planes')}>Planes e hitos</button><button type="button" onClick={() => setPantalla('procedimientos')}>Procedimientos</button><button type="button" onClick={() => setPantalla('exportaciones')}>Exportaciones</button></div>
+      <div className="menu-grupo"><span>Cumplimiento</span><button type="button" onClick={() => setPantalla('politicas')}>Políticas</button><button type="button" onClick={() => setPantalla('evidencias')}>Evidencias</button><button type="button" onClick={() => setPantalla('soa')}>Evaluación SOA</button><button type="button" onClick={() => setPantalla('planes')}>Planes e hitos</button><button type="button" onClick={() => setPantalla('procedimientos')}>Procedimientos</button><button type="button" onClick={() => setPantalla('exportaciones')}>Exportaciones</button></div></>}
     </nav>
     {pantalla === 'dashboard' ? <DashboardPage /> : pantalla === 'mfa' ? <MfaPage /> : pantalla === 'usuarios' ? <UsuariosPage /> : pantalla === 'auditoria' ? <AuditoriaPage /> : pantalla === 'organizaciones' ? <OrganizacionesPage /> : pantalla === 'organigrama' ? <OrganigramaPage /> : pantalla === 'trabajadores' ? <TrabajadoresPage /> : pantalla === 'procesos' ? <ProcesosPage /> : pantalla === 'raci' ? <RaciPage /> : pantalla === 'activos' ? <ActivosPage /> : pantalla === 'vulnerabilidades' ? <VulnerabilidadesPage /> : pantalla === 'riesgos' ? <RiesgosPage /> : pantalla === 'incidentes' ? <IncidentesPage /> : pantalla === 'politicas' ? <PoliticasPage /> : pantalla === 'evidencias' ? <EvidenciasPage /> : pantalla === 'planes' ? <PlanesPage /> : pantalla === 'procedimientos' ? <ProcedimientosPage /> : pantalla === 'soa' ? <EvaluacionSoaPage /> : <ExportacionesPage />}
   </div>

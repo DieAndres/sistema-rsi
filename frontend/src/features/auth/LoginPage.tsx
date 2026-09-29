@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { guardarToken, guardarUsuarioActual } from '../../shared/api/apiGet'
 import './auth.css'
 
-export function LoginPage({ onLogin }: { onLogin: () => void }) {
+type UsuarioLogin = { id: string; correo: string; rol: string; trabajadorId: string | null; unidadOrganizativaId: string | null; organizacionId: string | null; mfaConfirmado: boolean }
+
+export function LoginPage({ onLogin }: { onLogin: (mfaSetupRequired: boolean | undefined, usuario: UsuarioLogin) => void }) {
   const [correo, setCorreo] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -21,10 +23,10 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
         if (detalle.message?.includes('MFA')) setRequiereMfa(true)
         throw new Error(detalle.message?.includes('MFA') ? 'Ingresá el código de tu aplicación autenticadora.' : 'Correo o contraseña incorrectos.')
       }
-      const datos = await respuesta.json() as { token: string; usuario: { id: string; correo: string; rol: string; trabajadorId: string | null; unidadOrganizativaId: string | null; organizacionId: string | null } }
+      const datos = await respuesta.json() as { token: string; mfaSetupRequired?: boolean; usuario: UsuarioLogin }
       guardarToken(datos.token)
       guardarUsuarioActual(datos.usuario)
-      onLogin()
+      onLogin(datos.mfaSetupRequired, datos.usuario)
     } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo iniciar sesión.') }
     finally { setCargando(false) }
   }

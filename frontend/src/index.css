@@ -27,9 +27,9 @@ select {
   font: inherit;
 }
 
-.rol-lector .contenido form,
+.rol-lector .contenido form:not(.mfa-form),
 .rol-lector .contenido .unidad-acciones,
 .rol-lector .contenido .formulario-acciones,
-.rol-lector .contenido > .panel-estructura > button {
+.rol-lector .contenido > .panel-estructura > button:not(.mfa-setup-button) {
   display: none;
 }

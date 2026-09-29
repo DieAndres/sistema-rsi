@@ -13,7 +13,7 @@ export function guardarToken(token: string) { localStorage.setItem('rsi_token', 
 export function eliminarToken() { localStorage.removeItem('rsi_token') }
 export function obtenerToken() { return localStorage.getItem('rsi_token') }
 
-export type UsuarioActual = { id: string; correo: string; rol: string; trabajadorId: string | null; unidadOrganizativaId: string | null; organizacionId: string | null }
+export type UsuarioActual = { id: string; correo: string; rol: string; trabajadorId: string | null; unidadOrganizativaId: string | null; organizacionId: string | null; mfaConfirmado?: boolean }
 export function obtenerUsuarioActual(): UsuarioActual | null {
   const valor = localStorage.getItem('rsi_usuario')
   return valor ? JSON.parse(valor) as UsuarioActual : null

@@ -66,6 +66,7 @@ export class AuthService {
       await this.registrarAuditoria('LOGIN', null, datos.correo, 'FALLIDO');
       throw new UnauthorizedException('Correo o contraseña incorrectos.');
     }
+    const mfaObligatorio = ['ADMINISTRADOR', 'RSI'].includes(usuario.rol);
     if (usuario.mfaConfirmado) {
       if (
         !datos.codigoMfa ||
@@ -104,7 +105,9 @@ export class AuthService {
         correo: usuario.correo,
         rol: usuario.rol,
         trabajadorId: usuario.trabajadorId,
+        mfaConfirmado: usuario.mfaConfirmado,
       },
+      mfaSetupRequired: mfaObligatorio && !usuario.mfaConfirmado,
     };
   }
 
@@ -267,6 +270,7 @@ export class AuthService {
       correo: sesion.usuario.correo,
       rol: sesion.usuario.rol,
       trabajadorId: sesion.usuario.trabajadorId,
+      mfaConfirmado: sesion.usuario.mfaConfirmado,
       unidadOrganizativaId:
         sesion.usuario.trabajador?.unidadOrganizativaId ?? null,
       organizacionId:
