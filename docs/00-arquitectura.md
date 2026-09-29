@@ -5,40 +5,44 @@
 | Campo | Valor |
 |---|---|
 | Código | ARQ-C4-02 |
-| Versión | 1.6 |
-| Fecha | 25/09/2026 |
+| Versión | 1.8 |
+| Fecha | 29/09/2026 |
 | Metodología | C4 |
 | Estado | En construcción |
 
 ## C4 — Diagrama de contexto
 
 El Sistema RSI está construido como una aplicación web con una API backend y
-PostgreSQL. La autenticación todavía está pendiente. La interfaz web cuenta con
-una primera pantalla de consulta del organigrama.
+PostgreSQL. La autenticación básica ya está implementada mediante usuarios y
+sesiones persistidas. La autorización por roles y la auditoría básica están
+implementadas; MFA/TOTP continúa pendiente.
 
 ```mermaid
 flowchart LR
     Admin[Administrador<br/>Gestiona usuarios y configuración]
+    RSI[RSI<br/>Responsable de Seguridad de la Información]
     Dueño[Dueño de unidad<br/>Gestiona información de su unidad]
     Lector[Lector<br/>Consulta información autorizada]
     Sistema[Sistema de Gestión Integrada para el RSI<br/>Organización, activos, riesgos, incidentes y cumplimiento]
     Admin --> Sistema
+    RSI --> Sistema
     Dueño --> Sistema
     Lector --> Sistema
 
     classDef actor fill:#2563eb,color:#fff,stroke:#1e40af
     classDef system fill:#16a34a,color:#fff,stroke:#15803d
-    class Admin,Dueño,Lector actor
+    class Admin,RSI,Dueño,Lector actor
     class Sistema system
 ```
 
 ### Alcance del diagrama
 
 - El sistema concentra la lógica de gestión y cumplimiento en una API REST.
-- La interfaz React permite consultar el organigrama; las demás pantallas están
-  pendientes.
-- Los perfiles del diagrama son actores previstos; todavía no hay autenticación
-  ni autorización implementadas.
+- La interfaz React expone los módulos implementados y ajusta los menús según
+  el rol autenticado.
+- Los perfiles del diagrama representan usuarios con distintos roles de acceso.
+- El backend aplica autenticación, roles, modo lectura y alcance por unidad u
+  organización según el usuario autenticado.
 
 ## C4 — Diagrama de contenedores
 
@@ -51,11 +55,14 @@ flowchart LR
     subgraph Sistema[ Sistema de Gestión Integrada para el RSI ]
         Frontend[Frontend web<br/>React + Vite + TypeScript]
         Backend[Backend API<br/>NestJS + TypeScript]
+        Identidad[Identidad<br/>Usuarios y sesiones]
         BD[(Base de datos<br/>PostgreSQL + Prisma)]
     end
 
     Usuario -->|Navegador| Frontend
     Frontend -->|JSON / REST /api/v1| Backend
+    Backend -->|Autenticación| Identidad
+    Identidad -->|Usuarios y sesiones| BD
     Backend -->|Prisma / PostgreSQL| BD
 
     classDef app fill:#dbeafe,color:#111827,stroke:#60a5fa
@@ -90,7 +97,8 @@ controladores, servicios y DTOs, y utiliza Prisma para acceder a PostgreSQL.
 | Prisma | Persistencia y migraciones de PostgreSQL | Implementado |
 | Docker Compose | Ejecución local de PostgreSQL y volumen persistente | Implementado; sin respaldo automático |
 | Documentación de seguridad | Política, procedimientos de incidentes y vulnerabilidades, plan de continuidad | Redactados; requieren validación/aprobación operativa |
-| Autenticación y auditoría | Identidad, permisos y trazabilidad | Pendiente |
+| Autenticación | Registro, login, hash scrypt y sesiones expirables | Implementado; requiere endurecimiento y MFA |
+| Autorización y auditoría | Roles, permisos, alcance por unidad y trazabilidad | Implementado; MFA/TOTP pendiente |
 | Frontend y dashboard | Consulta del organigrama implementada; otras pantallas y dashboard KPI | Parcial |
 | SIEM | Recepción y análisis centralizado de logs | Pendiente |
 
@@ -107,6 +115,7 @@ Los archivos principales de los módulos implementados son:
 | KPI | `backend/src/kpi/kpi.controller.ts`, `kpi.service.ts` |
 | Exportaciones | `backend/src/exportaciones/exportaciones.controller.ts`, `exportaciones.service.ts`, `soa.service.ts` |
 | Persistencia | `backend/prisma/schema.prisma`, `backend/src/prisma/prisma.service.ts` |
+| Identidad | `backend/src/auth/auth.controller.ts`, `auth.service.ts`, `auth.module.ts` |
 | Frontend | `frontend/src/app/App.tsx`, `frontend/src/features/organizacion/` |
 
 Los módulos de seguridad incluyen activos, riesgos, vulnerabilidades e
@@ -116,7 +125,7 @@ no implican que los controles técnicos correspondientes ya estén desplegados.
 
 ## Modelo entidad-relación
 
-El esquema reúne las 18 entidades y sus atributos definidos en
+El esquema reúne las 20 entidades y sus atributos definidos en
 `backend/prisma/schema.prisma`. Las flechas muestran los vínculos estructurales
 principales; se omiten las flechas de responsables y las pertenencias que ya
 se deducen por otro camino. Los campos con `FK` sí existen en Prisma aunque
@@ -135,10 +144,12 @@ erDiagram
     ORGANIZACION o|--o{ PROCESO : define
     PROCESO ||--o{ ASIGNACION_RACI : tiene
     TRABAJADOR ||--o{ ASIGNACION_RACI : participa
+    TRABAJADOR o|--o| USUARIO : tiene_cuenta
     ORGANIZACION ||--o{ POLITICA : define
     POLITICA ||--o{ PROCEDIMIENTO : desarrolla
     ORGANIZACION ||--o{ PLAN : registra
     RIESGO o|--o{ PLAN : asociado_a
+    PROCESO }o--o{ ACTIVO : soporta
     PLAN ||--o{ HITO_PLAN : contiene
     ORGANIZACION ||--o{ EVIDENCIA : registra
     POLITICA o|--o{ EVIDENCIA : respaldada_por
@@ -172,6 +183,15 @@ erDiagram
         string nombre
         string cargo
         string correo
+    }
+
+    USUARIO {
+        string id PK
+        string correo UK
+        string passwordHash
+        string rol
+        boolean activo
+        string trabajadorId FK
     }
 
     PROCESO {
@@ -361,10 +381,24 @@ erDiagram
 - Documentación inicial de política de seguridad, gestión de incidentes,
   gestión de vulnerabilidades y continuidad.
 
+### Roles y alcance de datos
+
+| Rol | Alcance y permisos principales |
+|---|---|
+| `ADMINISTRADOR` | Acceso completo, gestión de usuarios y auditoría. |
+| `RSI` | Gestión de seguridad y cumplimiento; sin administración de usuarios. |
+| `DUENO_UNIDAD` | Gestión limitada a su organización y unidad asociada. No ve usuarios ni auditoría. |
+| `LECTOR` | Solo lectura dentro de su organización y unidad asociada. No puede crear, editar ni eliminar registros. |
+
+La interfaz oculta opciones no autorizadas, pero la protección efectiva se
+aplica en el backend mediante guards, validación de alcance y filtros de
+consulta. Los identificadores enviados por el cliente no pueden ampliar el
+alcance del usuario autenticado.
+
 ### Planificado o pendiente
 
 - Pantallas frontend para los módulos restantes y dashboard visual de KPI.
 - Exportadores para MCU 5.0, BCU, URCDP y COBIT.
-- Autenticación, roles, permisos y auditoría.
+- MFA/TOTP.
 - Integración con Wazuh.
 - Respaldos automáticos, copia externa y prueba documentada de restauración.

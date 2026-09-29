@@ -7,7 +7,9 @@ import {
   Param,
   Patch,
   Post,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { ActualizarOrganizacionDto } from './dto/organizacion/actualizar-organizacion.dto';
 import { ActualizarUnidadOrganizativaDto } from './dto/unidad-organizativa/actualizar-unidad-organizativa.dto';
 import { CrearOrganizacionDto } from './dto/organizacion/crear-organizacion.dto';
@@ -100,8 +102,18 @@ export class OrganizacionController {
   }
 
   @Get('trabajadores')
-  listarTrabajadores() {
-    return this.organizacionService.listarTrabajadores();
+  listarTrabajadores(
+    @Req()
+    request: Request & {
+      user?: { rol?: string; unidadOrganizativaId?: string | null };
+    },
+  ) {
+    const unidadId = ['DUENO_UNIDAD', 'LECTOR'].includes(
+      request.user?.rol ?? '',
+    )
+      ? (request.user?.unidadOrganizativaId ?? undefined)
+      : undefined;
+    return this.organizacionService.listarTrabajadores(unidadId);
   }
 
   @Get('trabajadores/:id')
@@ -157,8 +169,18 @@ export class OrganizacionController {
   }
 
   @Get('procesos')
-  listarProcesos() {
-    return this.organizacionService.listarProcesos();
+  listarProcesos(
+    @Req()
+    request: Request & {
+      user?: { rol?: string; organizacionId?: string | null };
+    },
+  ) {
+    const organizacionId = ['DUENO_UNIDAD', 'LECTOR'].includes(
+      request.user?.rol ?? '',
+    )
+      ? (request.user?.organizacionId ?? undefined)
+      : undefined;
+    return this.organizacionService.listarProcesos(organizacionId);
   }
 
   @Get('procesos/:id')

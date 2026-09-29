@@ -19,8 +19,8 @@ export class CumplimientoService {
     return this.gestion.crearPolitica(id, d);
   }
 
-  listarPoliticas() {
-    return this.gestion.listarPoliticas();
+  listarPoliticas(organizacionId?: string) {
+    return this.gestion.listarPoliticas(organizacionId);
   }
 
   consultarPolitica(id: string) {
@@ -39,8 +39,8 @@ export class CumplimientoService {
     return this.gestion.crearEvidencia(id, datos);
   }
 
-  listarEvidencias() {
-    return this.gestion.listarEvidencias();
+  listarEvidencias(organizacionId?: string) {
+    return this.gestion.listarEvidencias(organizacionId);
   }
 
   consultarEvidencia(id: string) {
@@ -59,8 +59,8 @@ export class CumplimientoService {
     return this.gestion.crearPlan(id, datos);
   }
 
-  listarPlanes() {
-    return this.gestion.listarPlanes();
+  listarPlanes(organizacionId?: string) {
+    return this.gestion.listarPlanes(organizacionId);
   }
 
   consultarPlan(id: string) {
@@ -95,8 +95,8 @@ export class CumplimientoService {
     return this.gestion.crearProcedimiento(id, datos);
   }
 
-  listarProcedimientos() {
-    return this.gestion.listarProcedimientos();
+  listarProcedimientos(organizacionId?: string) {
+    return this.gestion.listarProcedimientos(organizacionId);
   }
 
   consultarProcedimiento(id: string) {

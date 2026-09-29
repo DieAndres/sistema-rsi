@@ -23,7 +23,7 @@ export class ExportacionesService {
 
     const activos = await this.prisma.activo.findMany({
       where: { unidadOrganizativa: { organizacionId } },
-      include: { responsable: true },
+      include: { responsable: true, procesos: true },
       orderBy: [{ nombre: 'asc' }, { id: 'asc' }],
     });
 
@@ -42,6 +42,13 @@ export class ExportacionesService {
         .join(' | '),
     );
 
+    const procesos = await this.prisma.proceso.findMany({
+      where: { organizacionId },
+      include: { activos: true },
+      orderBy: { nombre: 'asc' },
+    });
+    const filasMatriz = procesos.flatMap((proceso) => proceso.activos.map((activo) => `| ${celda(proceso.nombre)} | ${celda(activo.nombre)} | ${celda(activo.criticidad)} |`));
+
     return [
       '# Inventario y clasificación de activos de información',
       '',
@@ -59,9 +66,11 @@ export class ExportacionesService {
       `Activos registrados: ${activos.length}. Los campos vacíos no están disponibles en los registros de origen.`,
       'Crítico = S cuando la criticidad registrada es ALTA o CRITICA; en otro caso, N.',
       '',
-      '## Matriz crítica (pendiente)',
+      '## Matriz crítica',
       '',
-      'No se genera: faltan las relaciones proceso-activo y el RTO en los registros de origen.',
+      '| Proceso | Activo que lo soporta | Criticidad |',
+      '|---|---|---|',
+      ...(filasMatriz.length ? filasMatriz : ['| Sin relaciones proceso-activo registradas |  |  |']),
       '',
     ].join('\n');
   }

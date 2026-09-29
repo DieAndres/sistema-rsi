@@ -7,7 +7,9 @@ import {
   Param,
   Patch,
   Post,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { CumplimientoService } from './cumplimiento.service';
 import { CrearPoliticaDto } from './dto/politica/crear-politica.dto';
 import { ActualizarPoliticaDto } from './dto/politica/actualizar-politica.dto';
@@ -31,8 +33,13 @@ export class CumplimientoController {
     return this.service.crearPolitica(id, d);
   }
 
-  @Get('politicas') listarPoliticas() {
-    return this.service.listarPoliticas();
+  @Get('politicas') listarPoliticas(
+    @Req()
+    request: Request & {
+      user?: { rol?: string; organizacionId?: string | null };
+    },
+  ) {
+    return this.service.listarPoliticas(this.alcanceOrganizacion(request));
   }
 
   @Get('politicas/:id') async consultarPolitica(@Param('id') id: string) {
@@ -61,8 +68,13 @@ export class CumplimientoController {
   }
 
   @Get('evidencias')
-  listarEvidencias() {
-    return this.service.listarEvidencias();
+  listarEvidencias(
+    @Req()
+    request: Request & {
+      user?: { rol?: string; organizacionId?: string | null };
+    },
+  ) {
+    return this.service.listarEvidencias(this.alcanceOrganizacion(request));
   }
 
   @Get('evidencias/:id')
@@ -98,8 +110,13 @@ export class CumplimientoController {
   }
 
   @Get('planes')
-  listarPlanes() {
-    return this.service.listarPlanes();
+  listarPlanes(
+    @Req()
+    request: Request & {
+      user?: { rol?: string; organizacionId?: string | null };
+    },
+  ) {
+    return this.service.listarPlanes(this.alcanceOrganizacion(request));
   }
 
   @Get('planes/:id')
@@ -157,8 +174,13 @@ export class CumplimientoController {
   }
 
   @Get('procedimientos')
-  listarProcedimientos() {
-    return this.service.listarProcedimientos();
+  listarProcedimientos(
+    @Req()
+    request: Request & {
+      user?: { rol?: string; organizacionId?: string | null };
+    },
+  ) {
+    return this.service.listarProcedimientos(this.alcanceOrganizacion(request));
   }
 
   @Get('procedimientos/:id')
@@ -183,5 +205,15 @@ export class CumplimientoController {
   @Delete('procedimientos/:id')
   eliminarProcedimiento(@Param('id') id: string) {
     return this.service.eliminarProcedimiento(id);
+  }
+
+  private alcanceOrganizacion(
+    request: Request & {
+      user?: { rol?: string; organizacionId?: string | null };
+    },
+  ) {
+    return ['DUENO_UNIDAD', 'LECTOR'].includes(request.user?.rol ?? '')
+      ? (request.user?.organizacionId ?? undefined)
+      : undefined;
   }
 }

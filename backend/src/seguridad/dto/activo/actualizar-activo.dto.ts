@@ -10,4 +10,6 @@ export class ActualizarActivoDto {
   clasificacion?: string;
 
   responsableId?: string;
+
+  procesoIds?: string[];
 }

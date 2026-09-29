@@ -12,6 +12,8 @@ export type Trabajador = {
   unidadOrganizativa?: { id: string; nombre: string; organizacionId?: string }
 }
 
+export type Proceso = { id: string; nombre: string; organizacionId?: string | null }
+
 export type TipoUnidad = 'AREA' | 'DIVISION' | 'DEPARTAMENTO' | 'SECTOR'
 
 export type Unidad = {

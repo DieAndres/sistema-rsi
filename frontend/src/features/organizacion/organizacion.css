@@ -379,4 +379,6 @@ button[type='submit'] {
   .menu-grupo, .menu-grupo:first-child { border-left: 0; border-top: 1px solid #38505a; padding: 10px 0 0; }
   .menu-grupo:first-child { border-top: 0; padding-top: 0; }
 }
+.rol-dueno-unidad .selector-organizacion,
+.rol-lector .selector-organizacion { display: none; }
 
