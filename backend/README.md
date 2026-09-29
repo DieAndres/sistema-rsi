@@ -132,3 +132,18 @@ npm.cmd run test:e2e -- --runInBand
 - KPI: resumen de indicadores operativos.
 
 Las credenciales y archivos `.env` son locales y no deben subirse al repositorio.
+## Inicialización del primer administrador
+
+En una base nueva no se habilita un registro público. Crear el primer usuario
+administrador mediante el comando de bootstrap:
+
+```powershell
+$env:BOOTSTRAP_ADMIN_EMAIL = 'admin@ejemplo.com'
+$env:BOOTSTRAP_ADMIN_PASSWORD = 'Una-clave-temporal-de-12'
+npm run crear-admin
+```
+
+El comando solo funciona cuando la tabla `usuarios` está vacía. La contraseña
+se almacena como hash `scrypt`; no se guarda ni se imprime el valor original.
+Después del primer acceso, eliminar las variables de entorno. El administrador
+inicial puede crear las demás cuentas desde el sistema.

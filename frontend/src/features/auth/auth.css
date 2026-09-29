@@ -1,0 +1,25 @@
+.login-pagina { align-items: center; background: #f5f8f8; display: flex; justify-content: center; min-height: 100vh; padding: 24px; }
+.login-panel { background: #fff; border: 1px solid #e1e8e9; border-radius: 14px; box-shadow: 0 12px 36px #1023330a; display: grid; gap: 14px; max-width: 420px; padding: 36px; width: 100%; }
+.login-panel h1 { margin-bottom: 0; }
+.login-panel label { color: #435660; display: grid; font-size: 13px; font-weight: 700; gap: 6px; }
+.login-panel input { border: 1px solid #cdd8dc; border-radius: 7px; font: inherit; height: 42px; padding: 0 10px; }
+.login-panel button { background: #245f5b; color: #fff; margin-top: 8px; padding: 11px; }
+.formulario-usuario { display: grid; gap: 14px; max-width: 560px; }
+.formulario-usuario h2 { color: #102333; font-size: 20px; margin-bottom: 4px; }
+.formulario-usuario label { color: #435660; display: grid; font-size: 13px; font-weight: 700; gap: 6px; }
+.formulario-usuario input, .formulario-usuario select { border: 1px solid #cdd8dc; border-radius: 7px; font: inherit; height: 42px; padding: 0 10px; }
+.formulario-usuario small { color: #647681; font-weight: 400; }
+.formulario-usuario button { background: #245f5b; color: #fff; padding: 11px; width: fit-content; }
+.mensaje-exito { background: #edf8f3; border: 1px solid #b8dfcf; border-radius: 8px; color: #24644f; padding: 12px 14px; }
+.usuarios-lista { border-top: 1px solid #edf1f2; display: grid; gap: 12px; margin-top: 32px; padding-top: 24px; }
+.usuarios-lista h2 { color: #102333; font-size: 20px; }
+.usuario-fila { align-items: center; background: #fbfcfc; border: 1px solid #e2e9e9; border-radius: 8px; display: grid; gap: 16px; grid-template-columns: 1fr 180px 100px; padding: 14px; }
+.usuario-fila div { display: grid; gap: 4px; }
+.usuario-fila small { color: #647681; }
+.usuario-fila select { border: 1px solid #cdd8dc; border-radius: 6px; height: 34px; }
+.usuario-activo { align-items: center; color: #435660; display: flex; font-size: 12px; gap: 6px; }
+@media (max-width: 700px) { .usuario-fila { grid-template-columns: 1fr; } }
+.auditoria-lista { display: grid; gap: 10px; margin-top: 24px; }
+.auditoria-fila { align-items: center; background: #fbfcfc; border: 1px solid #e2e9e9; border-radius: 8px; display: grid; gap: 12px; grid-template-columns: 150px 1fr 1fr 110px 190px; padding: 14px; }
+.auditoria-fila span, .auditoria-fila time { color: #647681; font-size: 13px; }
+@media (max-width: 900px) { .auditoria-fila { grid-template-columns: 1fr 1fr; } }

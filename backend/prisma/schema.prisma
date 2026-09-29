@@ -77,9 +77,53 @@ model Trabajador {
   activosResponsable          Activo[]             @relation("ResponsableActivo")
   procesosResponsable         Proceso[]            @relation("ResponsableProceso")
   hitosResponsable            HitoPlan[]           @relation("ResponsableHitoPlan")
+  usuario                     Usuario?
 
   @@index([unidadOrganizativaId])
   @@map("trabajadores")
+}
+
+model Usuario {
+  id            String       @id @default(uuid())
+  correo        String       @unique
+  passwordHash  String
+  rol           String       @default("LECTOR")
+  activo        Boolean      @default(true)
+  trabajadorId  String?      @unique
+  creadoEn      DateTime     @default(now())
+  actualizadoEn DateTime     @updatedAt
+  trabajador    Trabajador?  @relation(fields: [trabajadorId], references: [id])
+  sesiones      Sesion[]
+  auditorias    AuditEvent[]
+}
+
+model Sesion {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  usuarioId String
+  expiraEn  DateTime
+  creadoEn  DateTime @default(now())
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@index([expiraEn])
+}
+
+model AuditEvent {
+  id          String   @id @default(uuid())
+  eventType   String
+  entityType  String
+  entityId    String?
+  action      String
+  actorUserId String?
+  timestamp   DateTime @default(now())
+  result      String
+  metadata    Json?
+  actor       Usuario? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId, timestamp])
+  @@index([eventType, timestamp])
+  @@map("audit_events")
 }
 
 model Politica {
@@ -117,6 +161,7 @@ model Activo {
   vulnerabilidades   Vulnerabilidad[]
   riesgos            Riesgo[]
   incidentes         Incidente[]
+  procesos           Proceso[]
 
   @@index([unidadOrganizativaId])
   @@index([responsableId])
@@ -194,6 +239,7 @@ model Proceso {
   asignacionesRaci AsignacionRaci[]
   responsable      Trabajador?      @relation("ResponsableProceso", fields: [responsableId], references: [id])
   organizacion     Organizacion?    @relation(fields: [organizacionId], references: [id])
+  activos          Activo[]
 
   @@index([organizacionId])
   @@map("procesos")
