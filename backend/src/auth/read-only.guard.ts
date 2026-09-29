@@ -12,10 +12,14 @@ export class ReadOnlyGuard implements CanActivate {
     const request = context
       .switchToHttp()
       .getRequest<Request & { user?: { rol?: string } }>();
+    const esGestionMfa =
+      request.path.endsWith('/auth/mfa/setup') ||
+      request.path.endsWith('/auth/mfa/confirm');
     if (
       request.user?.rol === 'LECTOR' &&
       !['GET', 'HEAD', 'OPTIONS'].includes(request.method) &&
-      !request.path.endsWith('/auth/logout')
+      !request.path.endsWith('/auth/logout') &&
+      !esGestionMfa
     ) {
       throw new ForbiddenException(
         'El rol LECTOR solo tiene permisos de lectura.',

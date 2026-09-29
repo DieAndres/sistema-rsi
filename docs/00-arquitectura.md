@@ -14,8 +14,8 @@
 
 El Sistema RSI está construido como una aplicación web con una API backend y
 PostgreSQL. La autenticación básica ya está implementada mediante usuarios y
-sesiones persistidas. La autorización por roles y la auditoría básica están
-implementadas; MFA/TOTP continúa pendiente.
+sesiones persistidas. La autorización por roles, la auditoría básica y MFA/TOTP
+están implementados.
 
 ```mermaid
 flowchart LR
@@ -97,8 +97,8 @@ controladores, servicios y DTOs, y utiliza Prisma para acceder a PostgreSQL.
 | Prisma | Persistencia y migraciones de PostgreSQL | Implementado |
 | Docker Compose | Ejecución local de PostgreSQL y volumen persistente | Implementado; sin respaldo automático |
 | Documentación de seguridad | Política, procedimientos de incidentes y vulnerabilidades, plan de continuidad | Redactados; requieren validación/aprobación operativa |
-| Autenticación | Registro, login, hash scrypt y sesiones expirables | Implementado; requiere endurecimiento y MFA |
-| Autorización y auditoría | Roles, permisos, alcance por unidad y trazabilidad | Implementado; MFA/TOTP pendiente |
+| Autenticación | Registro, login, hash scrypt, sesiones expirables y MFA/TOTP | Implementado |
+| Autorización y auditoría | Roles, permisos, alcance por unidad y trazabilidad | Implementado |
 | Frontend y dashboard | Consulta del organigrama implementada; otras pantallas y dashboard KPI | Parcial |
 | SIEM | Recepción y análisis centralizado de logs | Pendiente |
 
@@ -399,6 +399,5 @@ alcance del usuario autenticado.
 
 - Pantallas frontend para los módulos restantes y dashboard visual de KPI.
 - Exportadores para MCU 5.0, BCU, URCDP y COBIT.
-- MFA/TOTP.
 - Integración con Wazuh.
 - Respaldos automáticos, copia externa y prueba documentada de restauración.

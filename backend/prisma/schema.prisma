@@ -89,6 +89,8 @@ model Usuario {
   passwordHash  String
   rol           String       @default("LECTOR")
   activo        Boolean      @default(true)
+  mfaSecret     String?
+  mfaConfirmado Boolean      @default(false)
   trabajadorId  String?      @unique
   creadoEn      DateTime     @default(now())
   actualizadoEn DateTime     @updatedAt

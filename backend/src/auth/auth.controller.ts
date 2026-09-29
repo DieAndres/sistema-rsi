@@ -55,6 +55,19 @@ export class AuthController {
     return this.auth.login(datos);
   }
 
+  @Post('mfa/setup')
+  iniciarMfa(@Req() request: Request & { user?: { id: string } }) {
+    return this.auth.iniciarMfa(request.user!.id);
+  }
+
+  @Post('mfa/confirm')
+  confirmarMfa(
+    @Body('codigo') codigo: string,
+    @Req() request: Request & { user?: { id: string } },
+  ) {
+    return this.auth.confirmarMfa(request.user!.id, codigo);
+  }
+
   @Get('me')
   async me(@Headers('authorization') authorization?: string) {
     const token = authorization?.startsWith('Bearer ')

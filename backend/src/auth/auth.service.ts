@@ -15,6 +15,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CrearUsuarioDto } from './dto/crear-usuario.dto';
 import { LoginDto } from './dto/login.dto';
 import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
+import { generateSecret, generateURI, verifySync } from 'otplib';
 
 const scrypt = promisify(scryptCallback);
 const ROLES = new Set(['ADMINISTRADOR', 'RSI', 'DUENO_UNIDAD', 'LECTOR']);
@@ -65,6 +66,23 @@ export class AuthService {
       await this.registrarAuditoria('LOGIN', null, datos.correo, 'FALLIDO');
       throw new UnauthorizedException('Correo o contraseña incorrectos.');
     }
+    if (usuario.mfaConfirmado) {
+      if (
+        !datos.codigoMfa ||
+        !usuario.mfaSecret ||
+        !verifySync({ token: datos.codigoMfa, secret: usuario.mfaSecret }).valid
+      ) {
+        await this.registrarAuditoria(
+          'MFA_FAILURE',
+          usuario.id,
+          usuario.correo,
+          'FALLIDO',
+        );
+        throw new UnauthorizedException(
+          'El código MFA es obligatorio o inválido.',
+        );
+      }
+    }
     const token = randomBytes(32).toString('hex');
     await this.prisma.sesion.create({
       data: {
@@ -88,6 +106,49 @@ export class AuthService {
         trabajadorId: usuario.trabajadorId,
       },
     };
+  }
+
+  async iniciarMfa(usuarioId: string) {
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+    });
+    if (!usuario) throw new NotFoundException('Usuario no encontrado.');
+    const secret = generateSecret();
+    await this.prisma.usuario.update({
+      where: { id: usuarioId },
+      data: { mfaSecret: secret, mfaConfirmado: false },
+    });
+    return {
+      secret,
+      otpauthUri: generateURI({
+        secret,
+        issuer: 'Sistema RSI',
+        label: usuario.correo,
+      }),
+    };
+  }
+
+  async confirmarMfa(usuarioId: string, codigo: string) {
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+    });
+    if (
+      !usuario?.mfaSecret ||
+      !verifySync({ token: codigo, secret: usuario.mfaSecret }).valid
+    ) {
+      throw new UnauthorizedException('El código MFA es inválido.');
+    }
+    await this.prisma.usuario.update({
+      where: { id: usuarioId },
+      data: { mfaConfirmado: true },
+    });
+    await this.registrarAuditoria(
+      'MFA_ENABLED',
+      usuarioId,
+      usuario.correo,
+      'EXITOSO',
+    );
+    return { mensaje: 'MFA activado correctamente.' };
   }
 
   listarUsuarios() {
