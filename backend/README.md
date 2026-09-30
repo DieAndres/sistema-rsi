@@ -143,7 +143,17 @@ $env:BOOTSTRAP_ADMIN_PASSWORD = 'Una-clave-temporal-de-12'
 npm run crear-admin
 ```
 
-El comando solo funciona cuando la tabla `usuarios` está vacía. La contraseña
-se almacena como hash `scrypt`; no se guarda ni se imprime el valor original.
+El comando solo funciona cuando la tabla `Usuario` está vacía. La contraseña
+se almacena siempre con Argon2id; no se guarda ni se imprime el valor original.
 Después del primer acceso, eliminar las variables de entorno. El administrador
 inicial puede crear las demás cuentas desde el sistema.
+
+## Passkeys / Windows Hello
+
+En `backend/.env`, configurar `WEBAUTHN_ORIGIN` con el origen del navegador
+(`http://localhost:5173` en desarrollo). Aplicar las migraciones con
+`npx prisma migrate deploy` antes de probar. El frontend registra passkeys desde
+**Seguridad de cuenta** y permite usarlas para iniciar sesión. Windows Hello
+puede ser el autenticador del navegador; el backend solo recibe y verifica la
+respuesta WebAuthn, nunca el PIN. El flujo, las rutas y las pruebas manuales
+están descritos en `docs/09-gestion-accesos.md`.

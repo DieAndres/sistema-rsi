@@ -16,10 +16,35 @@ import { Public } from './decorators/public.decorator';
 import { Roles } from './decorators/roles.decorator';
 import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
 import { Request } from 'express';
+import { PasskeyService } from './passkey.service';
+import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/server';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(private readonly auth: AuthService, private readonly passkeys: PasskeyService) {}
+
+  @Post('passkey/register/options')
+  registroPasskeyOpciones(@Req() request: Request & { user?: { id: string } }) {
+    return this.passkeys.registroOpciones(request.user!.id);
+  }
+
+  @Post('passkey/register/verify')
+  registrarPasskey(@Req() request: Request & { user?: { id: string } },
+    @Body() datos: { challengeId: string; response: RegistrationResponseJSON }) {
+    return this.passkeys.registrar(request.user!.id, datos?.challengeId, datos?.response);
+  }
+
+  @Post('passkey/login/options')
+  @Public()
+  loginPasskeyOpciones(@Body('correo') correo: string) {
+    return this.passkeys.loginOpciones(correo);
+  }
+
+  @Post('passkey/login/verify')
+  @Public()
+  loginPasskey(@Body() datos: { challengeId: string; response: AuthenticationResponseJSON; codigoMfa?: string }) {
+    return this.passkeys.login(datos?.challengeId, datos?.response, datos?.codigoMfa);
+  }
 
   @Post('usuarios')
   @Roles('ADMINISTRADOR')

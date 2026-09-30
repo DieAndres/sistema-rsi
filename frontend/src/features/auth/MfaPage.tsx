@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import QRCode from 'qrcode'
 import { obtenerToken } from '../../shared/api/apiGet'
+import { startRegistration } from '@simplewebauthn/browser'
 import './auth.css'
 
 export function MfaPage() {
@@ -25,5 +26,19 @@ export function MfaPage() {
     setCodigo('')
   }
 
-  return <main className="contenido"><div className="encabezado-pagina"><div><p className="sobretitulo">SEGURIDAD DE CUENTA</p><h1>MFA / TOTP</h1><p className="introduccion">Protegé tu cuenta con un código temporal de seis dígitos.</p></div></div><section className="panel-estructura formulario-usuario"><h2>Activar autenticación multifactor</h2><p>Generá la configuración y escaneala con Google Authenticator.</p><button className="mfa-setup-button" type="button" onClick={() => void iniciar()}>Generar código QR</button>{qr && <><img className="mfa-qr" src={qr} alt="Código QR para Google Authenticator" /><p className="introduccion">Abrí Google Authenticator, elegí agregar una cuenta y escaneá este código.</p><form className="mfa-form" onSubmit={confirmar}><label>Código de seis dígitos<input inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={codigo} onChange={(e) => setCodigo(e.target.value)} required autoComplete="one-time-code" /></label><button type="submit">Confirmar MFA</button></form></>}{error && <p className="mensaje mensaje-error">{error}</p>}{mensaje && <p className="mensaje mensaje-exito">{mensaje}</p>}</section></main>
+  async function registrarPasskey() {
+    setError(''); setMensaje('')
+    try {
+      const headers = { Authorization: `Bearer ${obtenerToken() ?? ''}` }
+      const inicio = await fetch('/api/v1/auth/passkey/register/options', { method: 'POST', headers })
+      if (!inicio.ok) throw new Error('No se pudo iniciar el registro de passkey.')
+      const { challengeId, options } = await inicio.json()
+      const response = await startRegistration({ optionsJSON: options })
+      const final = await fetch('/api/v1/auth/passkey/register/verify', { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ challengeId, response }) })
+      if (!final.ok) throw new Error('No se pudo verificar la passkey.')
+      setMensaje('Passkey registrada. Podés usarla en el próximo inicio de sesión.')
+    } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo registrar la passkey.') }
+  }
+
+  return <main className="contenido"><div className="encabezado-pagina"><div><p className="sobretitulo">SEGURIDAD DE CUENTA</p><h1>MFA / TOTP y passkey</h1><p className="introduccion">Protegé tu cuenta con un código temporal o una passkey.</p></div></div><section className="panel-estructura formulario-usuario"><h2>Activar autenticación multifactor</h2><p>Generá la configuración y escaneala con Google Authenticator.</p><button className="mfa-setup-button" type="button" onClick={() => void iniciar()}>Generar código QR</button>{qr && <><img className="mfa-qr" src={qr} alt="Código QR para Google Authenticator" /><p className="introduccion">Abrí Google Authenticator, elegí agregar una cuenta y escaneá este código.</p><form className="mfa-form" onSubmit={confirmar}><label>Código de seis dígitos<input inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={codigo} onChange={(e) => setCodigo(e.target.value)} required autoComplete="one-time-code" /></label><button type="submit">Confirmar MFA</button></form></>}<h2>Passkey / Windows Hello</h2><p>Registrá una passkey desde este dispositivo o una llave de seguridad. Windows Hello puede pedirte PIN, huella o rostro.</p><button type="button" onClick={() => void registrarPasskey()}>Registrar passkey</button>{error && <p className="mensaje mensaje-error">{error}</p>}{mensaje && <p className="mensaje mensaje-exito">{mensaje}</p>}</section></main>
 }

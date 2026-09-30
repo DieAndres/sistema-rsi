@@ -5,17 +5,17 @@
 | Campo | Valor |
 |---|---|
 | Código | ARQ-C4-02 |
-| Versión | 1.8 |
-| Fecha | 29/09/2026 |
+| Versión | 1.9 |
+| Fecha | 30/09/2026 |
 | Metodología | C4 |
 | Estado | En construcción |
 
 ## C4 — Diagrama de contexto
 
 El Sistema RSI está construido como una aplicación web con una API backend y
-PostgreSQL. La autenticación básica ya está implementada mediante usuarios y
-sesiones persistidas. La autorización por roles, la auditoría básica y MFA/TOTP
-están implementados.
+PostgreSQL. La autenticación usa usuarios y sesiones persistidas. La
+autorización por roles, la auditoría básica, TOTP y el flujo WebAuthn están
+implementados; falta probar Windows Hello en un dispositivo real.
 
 ```mermaid
 flowchart LR
@@ -51,18 +51,21 @@ Este nivel muestra las partes principales que forman la aplicación web y cómo 
 ```mermaid
 flowchart LR
     Usuario[Usuario]
+    Autenticador[Windows Hello o llave FIDO<br/>fuera del Sistema RSI]
 
     subgraph Sistema[ Sistema de Gestión Integrada para el RSI ]
         Frontend[Frontend web<br/>React + Vite + TypeScript]
         Backend[Backend API<br/>NestJS + TypeScript]
-        Identidad[Identidad<br/>Usuarios y sesiones]
+        Identidad[Identidad<br/>Usuarios, sesiones, passkeys y desafíos]
         BD[(Base de datos<br/>PostgreSQL + Prisma)]
     end
 
     Usuario -->|Navegador| Frontend
+    Frontend -->|API WebAuthn del navegador| Autenticador
+    Autenticador -->|Respuesta firmada| Frontend
     Frontend -->|JSON / REST /api/v1| Backend
     Backend -->|Autenticación| Identidad
-    Identidad -->|Usuarios y sesiones| BD
+    Identidad -->|Usuarios, sesiones y credenciales| BD
     Backend -->|Prisma / PostgreSQL| BD
 
     classDef app fill:#dbeafe,color:#111827,stroke:#60a5fa
@@ -81,6 +84,10 @@ flowchart LR
 4. Prisma consulta o modifica los datos en PostgreSQL.
 5. La API devuelve JSON al frontend.
 
+En WebAuthn, el navegador solicita una respuesta al autenticador y la envía a
+la API. El backend verifica la firma y el desafío guardado en PostgreSQL; nunca
+recibe el PIN de Windows Hello. Ver `docs/09-gestion-accesos.md`.
+
 ## C4 — Diagrama de componentes
 
 El backend se organiza como un monolito modular. Cada módulo concentra sus
@@ -97,7 +104,7 @@ controladores, servicios y DTOs, y utiliza Prisma para acceder a PostgreSQL.
 | Prisma | Persistencia y migraciones de PostgreSQL | Implementado |
 | Docker Compose | Ejecución local de PostgreSQL y volumen persistente | Implementado; sin respaldo automático |
 | Documentación de seguridad | Política, procedimientos de incidentes y vulnerabilidades, plan de continuidad | Redactados; requieren validación/aprobación operativa |
-| Autenticación | Registro, login, hash scrypt, sesiones expirables y MFA/TOTP | Implementado |
+| Autenticación | Registro, login, hashes Argon2id/bcrypt con compatibilidad scrypt, sesiones expirables, TOTP y WebAuthn | Implementado en código; prueba real con Windows Hello pendiente |
 | Autorización y auditoría | Roles, permisos, alcance por unidad y trazabilidad | Implementado |
 | Frontend y dashboard | Consulta del organigrama implementada; otras pantallas y dashboard KPI | Parcial |
 | SIEM | Recepción y análisis centralizado de logs | Pendiente |
@@ -115,7 +122,7 @@ Los archivos principales de los módulos implementados son:
 | KPI | `backend/src/kpi/kpi.controller.ts`, `kpi.service.ts` |
 | Exportaciones | `backend/src/exportaciones/exportaciones.controller.ts`, `exportaciones.service.ts`, `soa.service.ts` |
 | Persistencia | `backend/prisma/schema.prisma`, `backend/src/prisma/prisma.service.ts` |
-| Identidad | `backend/src/auth/auth.controller.ts`, `auth.service.ts`, `auth.module.ts` |
+| Identidad | `backend/src/auth/auth.controller.ts`, `auth.service.ts`, `passkey.service.ts`, `password.ts`, `auth.module.ts` |
 | Frontend | `frontend/src/app/App.tsx`, `frontend/src/features/organizacion/` |
 
 Los módulos de seguridad incluyen activos, riesgos, vulnerabilidades e
@@ -125,7 +132,7 @@ no implican que los controles técnicos correspondientes ya estén desplegados.
 
 ## Modelo entidad-relación
 
-El esquema reúne las 20 entidades y sus atributos definidos en
+El esquema reúne las 23 entidades definidas en
 `backend/prisma/schema.prisma`. Las flechas muestran los vínculos estructurales
 principales; se omiten las flechas de responsables y las pertenencias que ya
 se deducen por otro camino. Los campos con `FK` sí existen en Prisma aunque
@@ -145,6 +152,9 @@ erDiagram
     PROCESO ||--o{ ASIGNACION_RACI : tiene
     TRABAJADOR ||--o{ ASIGNACION_RACI : participa
     TRABAJADOR o|--o| USUARIO : tiene_cuenta
+    USUARIO ||--o{ SESION : inicia
+    USUARIO ||--o{ PASSKEY : registra
+    USUARIO ||--o{ PASSKEY_CHALLENGE : solicita
     ORGANIZACION ||--o{ POLITICA : define
     POLITICA ||--o{ PROCEDIMIENTO : desarrolla
     ORGANIZACION ||--o{ PLAN : registra
@@ -192,6 +202,29 @@ erDiagram
         string rol
         boolean activo
         string trabajadorId FK
+    }
+
+    SESION {
+        string id PK
+        string usuarioId FK
+        string tokenHash UK
+        datetime expiraEn
+    }
+
+    PASSKEY {
+        string id PK
+        string usuarioId FK
+        bytes publicKey
+        int counter
+        string transports
+    }
+
+    PASSKEY_CHALLENGE {
+        string id PK
+        string usuarioId FK
+        string challenge
+        string tipo
+        datetime expiraEn
     }
 
     PROCESO {

@@ -4,10 +4,11 @@ import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthGuard } from './auth.guard';
 import { RolesGuard } from './roles.guard';
+import { PasskeyService } from './passkey.service';
 
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, PrismaService, AuthGuard, RolesGuard],
+  providers: [AuthService, PasskeyService, PrismaService, AuthGuard, RolesGuard],
   exports: [AuthService, AuthGuard, RolesGuard],
 })
 export class AuthModule {}

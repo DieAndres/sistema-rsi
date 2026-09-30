@@ -112,3 +112,11 @@ VM Modules y el adaptador PostgreSQL mostró una advertencia de deprecación de
 - Código de pruebas: `backend/test/`.
 - Decisiones comunes: `docs/decisiones_comunes_blue_team_rsi.md`.
 - Código del backend: `backend/src/`.
+
+## Verificación de autenticación agregada el 30/09/2026
+
+Se ejecutaron `backend/src/auth/password.spec.ts` y `passkey.service.spec.ts`:
+2 suites y 2 pruebas aprobadas. Cubren Argon2id, bcrypt, compatibilidad con
+`scrypt` y rechazo de un desafío WebAuthn vencido o reutilizado. También
+compilaron backend y frontend. Estas pruebas no sustituyen el registro y login
+manual con Windows Hello, que sigue pendiente de evidencia.
