@@ -32,5 +32,9 @@ npm install
 npm run dev
 ```
 
-Vite reenvía `/api` al backend en `http://localhost:3000`. Para verificar el
-frontend antes de integrar cambios, ejecutar `npm run build` y `npm run lint`.
+Vite reenvía `/api` al backend en `http://localhost:3001`. Para registrar o usar
+passkeys en desarrollo, abrir `http://localhost:5173`, que debe coincidir con
+`WEBAUTHN_ORIGIN` del backend. En **Seguridad de cuenta** se registra la passkey;
+en la pantalla de acceso se usa **Entrar con passkey / Windows Hello**.
+Para verificar el frontend antes de integrar cambios, ejecutar `npm run build`
+y `npm run lint`.
