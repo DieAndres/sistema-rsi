@@ -97,6 +97,32 @@ model Usuario {
   trabajador    Trabajador?  @relation(fields: [trabajadorId], references: [id])
   sesiones      Sesion[]
   auditorias    AuditEvent[]
+  passkeys       Passkey[]
+  passkeyChallenges PasskeyChallenge[]
+}
+
+model Passkey {
+  id         String   @id
+  usuarioId  String
+  publicKey  Bytes
+  counter    Int
+  transports String?
+  creadoEn   DateTime @default(now())
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+}
+
+model PasskeyChallenge {
+  id        String   @id @default(uuid())
+  usuarioId String
+  challenge String
+  tipo      String
+  expiraEn  DateTime
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, tipo])
+  @@index([expiraEn])
 }
 
 model Sesion {

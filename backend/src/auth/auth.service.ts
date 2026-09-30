@@ -4,20 +4,14 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import {
-  createHash,
-  randomBytes,
-  scrypt as scryptCallback,
-  timingSafeEqual,
-} from 'node:crypto';
-import { promisify } from 'node:util';
+import { createHash, randomBytes } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CrearUsuarioDto } from './dto/crear-usuario.dto';
 import { LoginDto } from './dto/login.dto';
 import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
 import { generateSecret, generateURI, verifySync } from 'otplib';
+import { hashPassword, verifyPassword } from './password';
 
-const scrypt = promisify(scryptCallback);
 const ROLES = new Set(['ADMINISTRADOR', 'RSI', 'DUENO_UNIDAD', 'LECTOR']);
 const ROLES_CON_TRABAJADOR = new Set(['DUENO_UNIDAD', 'LECTOR']);
 
@@ -35,12 +29,15 @@ export class AuthService {
       throw new UnauthorizedException('El rol no es válido.');
     await this.validarRelacionTrabajador(rol, datos.trabajadorId);
     await this.validarTrabajadorSinUsuario(datos.trabajadorId);
-    const salt = randomBytes(16).toString('hex');
-    const hash = (await scrypt(datos.password, salt, 64)) as Buffer;
+    const algoritmo = datos.algoritmo ?? 'argon2';
+    if (!['argon2', 'bcrypt'].includes(algoritmo))
+      throw new BadRequestException('Algoritmo de contraseña no válido.');
+    if (algoritmo === 'bcrypt' && Buffer.byteLength(datos.password, 'utf8') > 72)
+      throw new BadRequestException('bcrypt admite hasta 72 bytes por contraseña.');
     return this.prisma.usuario.create({
       data: {
         correo,
-        passwordHash: `${salt}:${hash.toString('hex')}`,
+        passwordHash: await hashPassword(datos.password, algoritmo),
         rol,
         trabajadorId: datos.trabajadorId,
       },
@@ -55,13 +52,16 @@ export class AuthService {
   }
 
   async login(datos: LoginDto) {
+    if (typeof datos?.correo !== 'string' || typeof datos?.password !== 'string' ||
+      datos.correo.length > 320 || datos.password.length > 1024)
+      throw new UnauthorizedException('Correo o contraseña incorrectos.');
     const usuario = await this.prisma.usuario.findUnique({
       where: { correo: datos.correo?.trim().toLowerCase() },
     });
     if (
       !usuario ||
       !usuario.activo ||
-      !(await this.verificarPassword(datos.password, usuario.passwordHash))
+      !(await verifyPassword(datos.password, usuario.passwordHash))
     ) {
       await this.registrarAuditoria('LOGIN', null, datos.correo, 'FALLIDO');
       throw new UnauthorizedException('Correo o contraseña incorrectos.');
@@ -84,14 +84,7 @@ export class AuthService {
         );
       }
     }
-    const token = randomBytes(32).toString('hex');
-    await this.prisma.sesion.create({
-      data: {
-        usuarioId: usuario.id,
-        tokenHash: this.hashToken(token),
-        expiraEn: new Date(Date.now() + 8 * 60 * 60 * 1000),
-      },
-    });
+    const token = await this.crearSesion(usuario.id);
     await this.registrarAuditoria(
       'LOGIN',
       usuario.id,
@@ -278,10 +271,26 @@ export class AuthService {
     };
   }
 
+  async crearSesion(usuarioId: string) {
+    const token = randomBytes(32).toString('hex');
+    await this.prisma.sesion.create({
+      data: {
+        usuarioId,
+        tokenHash: this.hashToken(token),
+        expiraEn: new Date(Date.now() + 8 * 60 * 60 * 1000),
+      },
+    });
+    return token;
+  }
+
+  auditarPasskey(eventType: string, userId: string, result: string) {
+    return this.registrarAuditoria(eventType, userId, userId, result);
+  }
+
   private validarPassword(password: string) {
-    if (typeof password !== 'string' || password.length < 12)
+    if (typeof password !== 'string' || password.length < 12 || password.length > 1024)
       throw new UnauthorizedException(
-        'La contraseña debe tener al menos 12 caracteres.',
+        'La contraseña debe tener entre 12 y 1024 caracteres.',
       );
   }
 
@@ -316,17 +325,6 @@ export class AuthService {
         'El trabajador seleccionado ya tiene un usuario.',
       );
     }
-  }
-
-  private async verificarPassword(password: string, almacenada: string) {
-    const [salt, hash] = almacenada.split(':');
-    if (!salt || !hash) return false;
-    const calculada = (await scrypt(password, salt, 64)) as Buffer;
-    const esperada = Buffer.from(hash, 'hex');
-    return (
-      calculada.length === esperada.length &&
-      timingSafeEqual(calculada, esperada)
-    );
   }
 
   private hashToken(token: string) {

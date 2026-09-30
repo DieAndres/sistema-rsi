@@ -14,7 +14,9 @@ export class ReadOnlyGuard implements CanActivate {
       .getRequest<Request & { user?: { rol?: string } }>();
     const esGestionMfa =
       request.path.endsWith('/auth/mfa/setup') ||
-      request.path.endsWith('/auth/mfa/confirm');
+      request.path.endsWith('/auth/mfa/confirm') ||
+      request.path.endsWith('/auth/passkey/register/options') ||
+      request.path.endsWith('/auth/passkey/register/verify');
     if (
       request.user?.rol === 'LECTOR' &&
       !['GET', 'HEAD', 'OPTIONS'].includes(request.method) &&
