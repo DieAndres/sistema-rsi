@@ -130,3 +130,24 @@ Se comprobaron las ocho rutas HTTP de búsqueda y KPI: acceso permitido a
 Administrador/RSI; HTTP 403 para Dueño de unidad/Lector sin ejecutar el servicio;
 HTTP 401 sin autenticación. La prueba usa los guards reales con identidad y
 servicios sustituidos; no modifica PostgreSQL ni acredita cálculos KPI.
+
+## Configuración e histórico KPI en web — 01/10/2026
+
+El Dashboard incorpora la sección «Indicadores y metas»: alta y edición de
+código/nombre/descripción/fórmula/meta, desactivación/reactivación, registro
+manual de mediciones y tabla histórica con fecha y valor. El código no cambia
+al editar. Se utiliza el catálogo del backend, sin fórmulas arbitrarias.
+Administrador y RSI mantienen el acceso exclusivo.
+
+Comando: `npm.cmd run test:e2e -- --runInBand kpi-web.e2e-spec.ts permisos-busqueda-kpi.e2e-spec.ts`.
+Resultado: 2 suites y 4 pruebas aprobadas. La prueba KPI usa PostgreSQL y
+solicitudes autenticadas: crea un indicador temporal, mide activos reales,
+cambia fórmula/meta, comprueba bloqueo por desactivación, conservación del
+histórico, reactivación y auditoría de mediciones. Elimina solo sus registros
+de prueba al finalizar. Esto verifica el flujo de API utilizado por la web;
+no es una prueba automatizada de interacción con el navegador.
+
+Frontend: `npm.cmd run build` y ESLint de los dos componentes KPI aprobados.
+El histórico existente guarda valor/fecha; no guarda versiones de fórmula ni
+meta. La interfaz advierte que cambios de configuración no recalculan
+mediciones anteriores. No hay captura automática programada.

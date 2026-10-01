@@ -6,6 +6,22 @@
 .kpi-tarjeta.kpi-alerta strong { color: #a45b3e; }
 .kpi-tarjeta.kpi-alerta small { color: #a45b3e; }
 .dashboard-panel { min-height: 0; }
+.kpi-configuracion { margin-top: 24px; }
+.kpi-formulario { border: 0; display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 20px 0; padding: 0; }
+.kpi-formulario legend { font-weight: 700; margin-bottom: 16px; }
+.kpi-formulario label, .kpi-historico label { display: grid; gap: 6px; }
+.kpi-formulario input, .kpi-formulario select, .kpi-formulario textarea, .kpi-historico select { border: 1px solid #cdd8dc; border-radius: 7px; font: inherit; min-width: 0; padding: 10px; }
+.kpi-campo-ancho { grid-column: 1 / -1; }
+.kpi-acciones { align-items: end; display: flex; flex-wrap: wrap; gap: 12px; }
+.kpi-acciones button, .kpi-tabla button { background: #245f5b; color: white; padding: 10px 14px; }
+.kpi-formulario .kpi-activo { align-items: center; display: flex; }
+.kpi-tabla { margin-top: 20px; overflow-x: auto; }
+.kpi-tabla table { border-collapse: collapse; text-align: left; width: 100%; }
+.kpi-tabla caption { font-weight: 700; padding: 12px 0; text-align: left; }
+.kpi-tabla th, .kpi-tabla td { border-bottom: 1px solid #e1e8e9; padding: 12px; vertical-align: top; }
+.kpi-tabla small { display: block; margin-top: 4px; overflow-wrap: anywhere; }
+.kpi-historico { border-top: 1px solid #e1e8e9; margin-top: 24px; padding-top: 24px; }
+@media (max-width: 600px) { .kpi-formulario { grid-template-columns: 1fr; } }
 .incidentes-resumen { display: grid; gap: 16px; }
 .incidente-fila { align-items: center; display: grid; gap: 14px; grid-template-columns: 130px 1fr 30px; }
 .incidente-fila span { color: #435660; font-size: 13px; }
