@@ -1,7 +1,9 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { BusquedaService } from './busqueda.service';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('busqueda')
+@Roles('ADMINISTRADOR', 'RSI')
 export class BusquedaController {
   constructor(private readonly service: BusquedaService) {}
 

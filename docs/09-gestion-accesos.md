@@ -72,6 +72,12 @@ Estas reglas describen el código actual. La plantilla incluye operaciones de un
 
 Los roles implementados son `ADMINISTRADOR`, `RSI`, `DUENO_UNIDAD` y `LECTOR`. `RolesGuard` restringe rutas marcadas por rol; `ReadOnlyGuard` impide cambios de negocio al LECTOR, con excepciones para su propia MFA y cierre de sesión; `UnitScopeGuard` limita a DUENO_UNIDAD y LECTOR según organización o unidad. La revisión de permisos efectivos debe abarcar también exportaciones y acceso horizontal a registros.
 
+Desde el 01/10/2026, todas las rutas de búsqueda global y KPI requieren
+`ADMINISTRADOR` o `RSI`, incluidos configuración de indicadores y registro de
+mediciones. Dueño de unidad y Lector reciben HTTP 403. El frontend oculta el
+Dashboard para esos roles y abre Activos al ingresar o recargar. Esta
+restricción se aplica en el backend mediante `@Roles` en ambos controladores.
+
 ## 3. Registro de accesos (acta)
 
 La lista de usuarios del backend incluye ID, correo, rol, estado, vínculo con trabajador y fecha de alta. **No equivale a un acta de autorización ni a una revisión de accesos**. Para cada revisión debe conservarse, en un medio de acceso restringido:

@@ -2,8 +2,10 @@ import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { ActualizarIndicadorKpiDto } from './dto/actualizar-indicador-kpi.dto';
 import { CrearIndicadorKpiDto } from './dto/crear-indicador-kpi.dto';
 import { KpiService } from './kpi.service';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('kpis')
+@Roles('ADMINISTRADOR', 'RSI')
 export class KpiController {
   constructor(private readonly kpiService: KpiService) {}
 

@@ -120,3 +120,13 @@ Se ejecutaron `backend/src/auth/password.spec.ts` y `passkey.service.spec.ts`:
 `scrypt` y rechazo de un desafío WebAuthn vencido o reutilizado. También
 compilaron backend y frontend. Estas pruebas no sustituyen el registro y login
 manual con Windows Hello, que sigue pendiente de evidencia.
+
+## Permisos de búsqueda y KPI — 01/10/2026
+
+Comando: `npm.cmd run test:e2e -- --runInBand permisos-busqueda-kpi.e2e-spec.ts`.
+Resultado: 1 suite y 3 pruebas aprobadas.
+
+Se comprobaron las ocho rutas HTTP de búsqueda y KPI: acceso permitido a
+Administrador/RSI; HTTP 403 para Dueño de unidad/Lector sin ejecutar el servicio;
+HTTP 401 sin autenticación. La prueba usa los guards reales con identidad y
+servicios sustituidos; no modifica PostgreSQL ni acredita cálculos KPI.
