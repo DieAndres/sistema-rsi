@@ -1,6 +1,8 @@
 export class CrearIncidenteDto {
   activoId!: string;
 
+  accionRealizada?: string;
+
   titulo!: string;
 
   descripcion?: string;

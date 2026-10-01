@@ -21,9 +21,9 @@ El objetivo académico del proyecto es el perfil MCU 5.0 **Avanzado**. El perfil
 | Campo | Valor |
 |---|---|
 | Código | SI-INC-04 |
-| Versión | 1.3 — propuesta |
+| Versión | 1.4 — propuesta |
 | Responsable | RSI o responsable de seguridad designado para operar el Sistema RSI |
-| Fecha | 30/09/2026 |
+| Fecha | 01/10/2026 |
 | Aprobación | Pendiente de registrar |
 | Próxima revisión | Un año después de la aprobación o tras un incidente significativo |
 
@@ -35,6 +35,8 @@ El objetivo académico del proyecto es el perfil MCU 5.0 **Avanzado**. El perfil
 | 1.1 | 30/09/2026 | Equipo del proyecto | Alcance y referencias normativas centradas en el RSI. |
 | 1.2 | 30/09/2026 | Equipo del proyecto | Reorganización según la estructura de `plantilla/isaca/04-gestion-incidentes.md`. |
 | 1.3 | 30/09/2026 | Equipo del proyecto | Retiro de las secciones de guía de llenado y aceptación, propias de la plantilla. |
+
+| 1.4 | 01/10/2026 | Equipo del proyecto | Actualización del alcance del registro de incidentes y enlace al seguimiento implementado. |
 
 ## 1. Definiciones (marco)
 
@@ -72,7 +74,7 @@ Quien detecte un evento debe comunicarlo al responsable de seguridad. Este disti
 |---|---|---|---|---|---|---|---|
 | Sin incidentes del RSI documentados en este archivo | — | — | — | — | — | — | — |
 
-El CRUD `/api/v1/seguridad/incidentes` y la entidad `Incidente` de Prisma registran incidentes asociados a activos de organizaciones cargadas en la aplicación. No contienen la cronología ni las acciones de un expediente de incidente **del RSI**. Hasta que se defina un registro específico, el expediente operativo debe conservarse en un medio protegido y referenciar las evidencias pertinentes de `docs/evidencias/` cuando se trate del laboratorio del curso. La tabla se completa solo con casos reales o simulacros identificados como tales.
+El módulo `/api/v1/seguridad/incidentes` registra incidentes asociados a activos de organizaciones y ahora conserva acciones por etapa, autor y fecha mediante `AccionIncidente`, además de la auditoría general. Su uso y límites se documentan en [Ciclo de incidentes](evidencias/incidentes-ciclo.md). Esto no demuestra un incidente **del propio RSI** ni sustituye su expediente operativo: debe identificarse el caso real o simulacro, conservar evidencias en un medio protegido y registrar las comunicaciones pertinentes. La tabla se completa solo con esos casos identificados. El historial anterior a la migración no se reconstruye.
 
 ## 3. Procedimiento de respuesta (línea de tiempo)
 

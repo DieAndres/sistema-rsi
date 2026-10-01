@@ -249,6 +249,7 @@ model Incidente {
   activo              Activo      @relation(fields: [activoId], references: [id])
   responsable         Trabajador? @relation("ResponsableIncidente", fields: [responsableId], references: [id])
   evidencias          Evidencia[]
+  historial           AccionIncidente[]
 
   @@index([activoId])
   @@index([responsableId])
@@ -439,4 +440,17 @@ model BrechaMcu {
 
   @@unique([organizacionId, funcion])
   @@map("brechas_mcu")
+}
+
+model AccionIncidente {
+ id String @id @default(uuid())
+ incidenteId String
+ estado String
+ descripcion String
+ usuarioId String?
+ usuarioCorreo String?
+ fecha DateTime @default(now())
+ incidente Incidente @relation(fields: [incidenteId], references: [id], onDelete: Cascade)
+ @@index([incidenteId, fecha])
+ @@map("acciones_incidente")
 }

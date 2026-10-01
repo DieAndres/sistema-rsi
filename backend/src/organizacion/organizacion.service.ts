@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ActualizarOrganizacionDto } from './dto/organizacion/actualizar-organizacion.dto';
@@ -799,10 +803,20 @@ export class OrganizacionService {
     }
   }
 
-  async crearIncidente(d: CrearIncidenteDto) {
+  async crearIncidente(
+    d: CrearIncidenteDto,
+    usuario: { id: string; correo: string },
+  ) {
     const titulo = d.titulo?.trim();
     if (!titulo || !d.severidad?.trim())
       throw new BadRequestException('Título y severidad son obligatorios');
+    if (d.estado && d.estado !== 'ABIERTO')
+      throw new BadRequestException('El incidente debe comenzar ABIERTO');
+    if (
+      d.accionRealizada !== undefined &&
+      (typeof d.accionRealizada !== 'string' || d.accionRealizada.length > 2000)
+    )
+      throw new BadRequestException('Acción inválida (máximo 2000 caracteres)');
     await this.validarActivoYResponsable(d.activoId, d.responsableId);
     return this.prisma.incidente.create({
       data: {
@@ -810,11 +824,24 @@ export class OrganizacionService {
         titulo,
         descripcion: d.descripcion?.trim() || null,
         severidad: d.severidad.trim(),
-        estado: d.estado?.trim() || 'ABIERTO',
+        estado: 'ABIERTO',
+        historial: {
+          create: {
+            estado: 'ABIERTO',
+            descripcion:
+              d.accionRealizada?.trim() || 'Detección: incidente registrado.',
+            usuarioId: usuario.id,
+            usuarioCorreo: usuario.correo,
+          },
+        },
         leccionesAprendidas: d.leccionesAprendidas?.trim() || null,
         responsableId: d.responsableId,
       },
-      include: { activo: true, responsable: true },
+      include: {
+        activo: true,
+        responsable: true,
+        historial: { orderBy: { fecha: 'asc' } },
+      },
     });
   }
 
@@ -825,7 +852,11 @@ export class OrganizacionService {
         ...(estado ? { estado } : {}),
         ...(severidad ? { severidad } : {}),
       },
-      include: { activo: true, responsable: true },
+      include: {
+        activo: true,
+        responsable: true,
+        historial: { orderBy: { fecha: 'asc' } },
+      },
       orderBy: { titulo: 'asc' },
     });
   }
@@ -833,13 +864,73 @@ export class OrganizacionService {
   consultarIncidente(id: string) {
     return this.prisma.incidente.findUnique({
       where: { id },
-      include: { activo: true, responsable: true },
+      include: {
+        activo: true,
+        responsable: true,
+        historial: { orderBy: { fecha: 'asc' } },
+      },
     });
   }
 
-  actualizarIncidente(id: string, d: ActualizarIncidenteDto) {
+  async actualizarIncidente(
+    id: string,
+    d: ActualizarIncidenteDto,
+    usuario: { id: string; correo: string },
+  ) {
+    for (const campo of ['titulo', 'severidad', 'estado'] as const) {
+      if (
+        d[campo] !== undefined &&
+        (typeof d[campo] !== 'string' || !d[campo]?.trim())
+      )
+        throw new BadRequestException(`${campo} debe ser texto no vacío`);
+    }
+    if (
+      d.leccionesAprendidas !== undefined &&
+      d.leccionesAprendidas !== null &&
+      typeof d.leccionesAprendidas !== 'string'
+    )
+      throw new BadRequestException('Lecciones inválidas');
+    const actual = await this.prisma.incidente.findUnique({ where: { id } });
+    if (!actual) throw new NotFoundException('Incidente inexistente');
+    const etapas = [
+      'ABIERTO',
+      'CONTENIDO',
+      'ERRADICADO',
+      'RECUPERADO',
+      'CERRADO',
+    ];
+    const estado = d.estado ?? actual.estado;
+    const paso = etapas.indexOf(estado) - etapas.indexOf(actual.estado);
+    if (!etapas.includes(estado) || ![0, 1].includes(paso))
+      throw new BadRequestException(
+        'Solo se permite mantener la etapa o avanzar a la siguiente',
+      );
+    if (
+      d.accionRealizada !== undefined &&
+      (typeof d.accionRealizada !== 'string' || d.accionRealizada.length > 2000)
+    )
+      throw new BadRequestException('Acción inválida (máximo 2000 caracteres)');
+    const accion = d.accionRealizada?.trim();
+    if (paso === 1 && !accion)
+      throw new BadRequestException(
+        'Describí la acción realizada para avanzar',
+      );
+    if (
+      estado === 'CERRADO' &&
+      !(
+        d.leccionesAprendidas !== undefined
+          ? d.leccionesAprendidas
+          : actual.leccionesAprendidas
+      )?.trim()
+    )
+      throw new BadRequestException(
+        'Las lecciones aprendidas son obligatorias para cerrar',
+      );
+    await this.validarActivoYResponsable(
+      actual.activoId,
+      d.responsableId || actual.responsableId || undefined,
+    );
     const datosActualizados: Prisma.IncidenteUncheckedUpdateInput = {};
-
     if (d.titulo !== undefined) datosActualizados.titulo = d.titulo.trim();
     if (d.descripcion !== undefined)
       datosActualizados.descripcion = d.descripcion.trim() || null;
@@ -851,11 +942,23 @@ export class OrganizacionService {
         d.leccionesAprendidas?.trim() || null;
     if (d.responsableId !== undefined)
       datosActualizados.responsableId = d.responsableId || null;
-
+    if (accion)
+      datosActualizados.historial = {
+        create: {
+          estado,
+          descripcion: accion,
+          usuarioId: usuario.id,
+          usuarioCorreo: usuario.correo,
+        },
+      };
     return this.prisma.incidente.update({
       where: { id },
       data: datosActualizados,
-      include: { activo: true, responsable: true },
+      include: {
+        activo: true,
+        responsable: true,
+        historial: { orderBy: { fecha: 'asc' } },
+      },
     });
   }
 

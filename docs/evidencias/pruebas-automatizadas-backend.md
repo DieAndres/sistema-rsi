@@ -151,3 +151,9 @@ Frontend: `npm.cmd run build` y ESLint de los dos componentes KPI aprobados.
 El histórico existente guarda valor/fecha; no guarda versiones de fórmula ni
 meta. La interfaz advierte que cambios de configuración no recalculan
 mediciones anteriores. No hay captura automática programada.
+
+## Ciclo de incidentes y panel de seguimiento — 01/10/2026
+
+Comando: `npm.cmd run test:e2e -- --runInBand incidentes-ciclo.e2e-spec.ts` desde backend. Resultado: 1 suite y 1 prueba aprobadas con PostgreSQL y autenticación real. Recorre ABIERTO → CONTENIDO → ERRADICADO → RECUPERADO → CERRADO, registra varias acciones en una etapa y verifica autor, fecha y seis AuditEvent. Rechaza estado desconocido, saltos, retrocesos, avance sin acción y cierre sin lecciones; tampoco permite eliminar las lecciones de un incidente cerrado. El autor enviado por el cliente no sustituye al autenticado.
+
+Backend y frontend compilaron; ESLint de los archivos modificados pasó. Se comprobó visualmente la separación Editar/Seguimiento, las opciones disponibles, el recorrido resaltado y el historial. Esa comprobación no constituye una prueba automatizada de interacción con la web ni un simulacro operativo. [Detalle y límites](incidentes-ciclo.md).

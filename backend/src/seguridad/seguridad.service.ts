@@ -73,8 +73,11 @@ export class SeguridadService {
     return this.gestion.eliminarRiesgo(id);
   }
 
-  crearIncidente(d: CrearIncidenteDto) {
-    return this.gestion.crearIncidente(d);
+  crearIncidente(
+    d: CrearIncidenteDto,
+    usuario: { id: string; correo: string },
+  ) {
+    return this.gestion.crearIncidente(d, usuario);
   }
 
   listarIncidentes(estado?: string, severidad?: string, unidadId?: string) {
@@ -85,8 +88,12 @@ export class SeguridadService {
     return this.gestion.consultarIncidente(id);
   }
 
-  actualizarIncidente(id: string, d: ActualizarIncidenteDto) {
-    return this.gestion.actualizarIncidente(id, d);
+  actualizarIncidente(
+    id: string,
+    d: ActualizarIncidenteDto,
+    usuario: { id: string; correo: string },
+  ) {
+    return this.gestion.actualizarIncidente(id, d, usuario);
   }
 
   eliminarIncidente(id: string) {

@@ -139,8 +139,11 @@ export class SeguridadController {
     return this.service.eliminarRiesgo(id);
   }
 
-  @Post('incidentes') crearIncidente(@Body() d: CrearIncidenteDto) {
-    return this.service.crearIncidente(d);
+  @Post('incidentes') crearIncidente(
+    @Body() d: CrearIncidenteDto,
+    @Req() req: Request & { user: { id: string; correo: string } },
+  ) {
+    return this.service.crearIncidente(d, req.user);
   }
 
   @Get('incidentes') listarIncidentes(
@@ -166,8 +169,9 @@ export class SeguridadController {
   @Patch('incidentes/:id') actualizarIncidente(
     @Param('id') id: string,
     @Body() d: ActualizarIncidenteDto,
+    @Req() req: Request & { user: { id: string; correo: string } },
   ) {
-    return this.service.actualizarIncidente(id, d);
+    return this.service.actualizarIncidente(id, d, req.user);
   }
 
   @Delete('incidentes/:id') eliminarIncidente(@Param('id') id: string) {

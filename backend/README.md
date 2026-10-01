@@ -171,3 +171,9 @@ En `backend/.env`, configurar `WEBAUTHN_ORIGIN` con el origen del navegador
 puede ser el autenticador del navegador; el backend solo recibe y verifica la
 respuesta WebAuthn, nunca el PIN. El flujo, las rutas y las pruebas manuales
 están descritos en `docs/09-gestion-accesos.md`.
+
+## Ciclo de incidentes
+
+`POST /api/v1/seguridad/incidentes` crea en ABIERTO. `PATCH /api/v1/seguridad/incidentes/{id}` permite mantener la etapa o avanzar por CONTENIDO → ERRADICADO → RECUPERADO → CERRADO. Avanzar exige `accionRealizada`; cerrar exige `leccionesAprendidas`. Los GET incluyen `historial` con acciones, autor autenticado y fecha del servidor. La operación y AuditEvent comparten la transacción de la petición.
+
+La migración `20261001190000_historial_incidentes` requiere `prisma migrate deploy` y `prisma generate`. [Uso, contrato, migración y límites](../docs/evidencias/incidentes-ciclo.md).

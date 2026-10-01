@@ -38,3 +38,7 @@ passkeys en desarrollo, abrir `http://localhost:5173`, que debe coincidir con
 en la pantalla de acceso se usa **Entrar con passkey / Windows Hello**.
 Para verificar el frontend antes de integrar cambios, ejecutar `npm run build`
 y `npm run lint`.
+
+## Incidentes: edición y seguimiento
+
+En Seguridad → Incidentes, **Editar** modifica datos generales y **Seguimiento** abre un panel con recorrido, etapa actual, acciones, lecciones e historial. Guardar seguimiento mantiene el panel abierto; Volver regresa al formulario general. Las acciones son obligatorias en el panel y las lecciones se exigen para cerrar. [Guía completa](../docs/evidencias/incidentes-ciclo.md).

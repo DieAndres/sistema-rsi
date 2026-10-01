@@ -1,4 +1,6 @@
 export class ActualizarIncidenteDto {
+  accionRealizada?: string;
+
   titulo?: string;
 
   descripcion?: string;

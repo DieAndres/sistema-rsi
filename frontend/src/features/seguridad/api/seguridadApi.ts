@@ -19,8 +19,9 @@ export function listarRiesgos(estado?: string) { return apiRequest<Riesgo[]>(`/a
 export function crearRiesgo(datos: DatosRiesgo) { return apiRequest<Riesgo>('/api/v1/seguridad/riesgos', { method: 'POST', body: JSON.stringify(datos) }) }
 export function actualizarRiesgo(id: string, datos: Partial<DatosRiesgo> & { estado?: string }) { return apiRequest<Riesgo>(`/api/v1/seguridad/riesgos/${id}`, { method: 'PATCH', body: JSON.stringify(datos) }) }
 export function eliminarRiesgo(id: string) { return apiRequest<Riesgo>(`/api/v1/seguridad/riesgos/${id}`, { method: 'DELETE' }) }
-export type Incidente = { id: string; activoId: string; titulo: string; descripcion?: string | null; severidad: string; estado: string; leccionesAprendidas?: string | null; activo: { id: string; nombre: string }; responsable?: Trabajador | null }
-export type DatosIncidente = { activoId: string; titulo: string; descripcion?: string; severidad: string; estado?: string; leccionesAprendidas?: string; responsableId?: string }
+export type AccionIncidente = { id: string; estado: string; descripcion: string; usuarioCorreo: string | null; fecha: string }
+export type Incidente = { historial: AccionIncidente[]; id: string; activoId: string; titulo: string; descripcion?: string | null; severidad: string; estado: string; leccionesAprendidas?: string | null; activo: { id: string; nombre: string }; responsable?: Trabajador | null }
+export type DatosIncidente = { accionRealizada?: string; activoId: string; titulo: string; descripcion?: string; severidad: string; estado?: string; leccionesAprendidas?: string; responsableId?: string }
 export function listarIncidentes(estado?: string, severidad?: string) { const q = new URLSearchParams(); if (estado) q.set('estado', estado); if (severidad) q.set('severidad', severidad); return apiRequest<Incidente[]>(`/api/v1/seguridad/incidentes${q.toString() ? `?${q}` : ''}`, { method: 'GET' }) }
 export function crearIncidente(datos: DatosIncidente) { return apiRequest<Incidente>('/api/v1/seguridad/incidentes', { method: 'POST', body: JSON.stringify(datos) }) }
 export function actualizarIncidente(id: string, datos: Partial<DatosIncidente>) { return apiRequest<Incidente>(`/api/v1/seguridad/incidentes/${id}`, { method: 'PATCH', body: JSON.stringify(datos) }) }

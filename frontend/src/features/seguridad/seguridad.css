@@ -24,3 +24,13 @@
 .selector-procesos-acciones { align-self: center; display: grid; gap: 6px; }
 .selector-procesos-acciones button { font-size: 11px; padding: 7px; }
 @media (max-width: 760px) { .selector-procesos { grid-template-columns: 1fr; } .selector-procesos-acciones { display: flex; } }
+
+.seguimiento-incidente { margin: 24px 0; }
+.etapas-incidente { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; }
+.etapas-incidente li { flex: 1; min-width: 130px; padding: 12px; border: 1px solid #cdd8dc; border-radius: 8px; color: #435660; }
+.etapas-incidente small { display: block; margin-top: 6px; font-size: 11px; }
+.etapas-incidente .etapa-alcanzada { background: #eaf5f3; }
+.etapas-incidente [aria-current="step"] { border: 2px solid #174f50; font-weight: 700; }
+.accion-incidente { border-left: 3px solid #174f50; padding: 12px 16px; margin: 12px 0; overflow-wrap: anywhere; }
+.accion-incidente p { white-space: pre-wrap; }
+@media (max-width: 760px) { .formulario-incidente { grid-template-columns: 1fr; } }
