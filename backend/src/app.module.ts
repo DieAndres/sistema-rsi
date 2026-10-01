@@ -9,7 +9,8 @@ import { KpiModule } from './kpi/kpi.module';
 import { BusquedaModule } from './busqueda/busqueda.module';
 import { ExportacionesModule } from './exportaciones/exportaciones.module';
 import { AuthModule } from './auth/auth.module';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { AuditoriaInterceptor } from './auth/auditoria.interceptor';
 import { AuthGuard } from './auth/auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { ReadOnlyGuard } from './auth/read-only.guard';
@@ -29,6 +30,7 @@ import { UnitScopeGuard } from './auth/unit-scope.guard';
   providers: [
     AppService,
     PrismaService,
+    { provide: APP_INTERCEPTOR, useClass: AuditoriaInterceptor },
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
     { provide: APP_GUARD, useClass: ReadOnlyGuard },

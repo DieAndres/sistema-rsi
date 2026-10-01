@@ -23,14 +23,14 @@ export class ExportacionesController {
   async inventarioActivos(
     @Param('id') id: string,
     @Req() request: Request,
-    @Res() respuesta: Response,
+    @Res({ passthrough: true }) respuesta: Response,
   ) {
     this.validarAlcance(id, request);
     const contenido = await this.exportaciones.inventarioActivos(id);
     respuesta
       .type('text/markdown; charset=utf-8')
-      .attachment('inventario-activos-borrador.md')
-      .send(contenido);
+      .attachment('inventario-activos-borrador.md');
+    return contenido;
   }
 
   @Get('organizaciones/:id/soa/controles')
@@ -65,14 +65,14 @@ export class ExportacionesController {
   async exportarSoa(
     @Param('id') id: string,
     @Req() request: Request,
-    @Res() respuesta: Response,
+    @Res({ passthrough: true }) respuesta: Response,
   ) {
     this.validarAlcance(id, request);
     const contenido = await this.soa.exportar(id);
     respuesta
       .type('text/markdown; charset=utf-8')
-      .attachment('soa-borrador.md')
-      .send(contenido);
+      .attachment('soa-borrador.md');
+    return contenido;
   }
 
   private validarAlcance(

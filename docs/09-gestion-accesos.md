@@ -113,7 +113,14 @@ No se exige una expresión regular de mayúsculas, símbolos y cambios cada 90/1
 | Registro e inicio con passkey | Se registran `PASSKEY_REGISTER` y `PASSKEY_LOGIN`; el login con passkey fallido también se audita. |
 | Cambio de usuario y cierre de sesión | Se registran `USER_UPDATE` y `LOGOUT`. |
 
-La API permite al Administrador consultar los **200 eventos más recientes**. No se encontró una política de retención implementada de al menos un año, correlación SIEM/Wazuh ni alerta automática por varios intentos fallidos. La consigna exige trazabilidad y retención; estos puntos requieren implementación y evidencia antes de declararlos satisfechos.
+Desde el 01/10/2026 también se registran los cambios de los módulos de gestión
+y las exportaciones mediante un interceptor común, con valores anteriores y
+nuevos y transacción compartida con la operación. La API permite al
+Administrador filtrar por entidad y usuario y consultar páginas de 50 eventos,
+incluidos los antiguos. Ver `docs/evidencias/auditoria-gestion.md`.
+No hay purga automática. La garantía operativa de retención de al menos un año,
+la correlación SIEM/Wazuh y las alertas requieren implementación o evidencia
+adicional antes de declararlas satisfechas.
 
 ## Fuentes oficiales
 

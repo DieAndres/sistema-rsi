@@ -11,6 +11,7 @@ import { LoginDto } from './dto/login.dto';
 import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
 import { generateSecret, generateURI, verifySync } from 'otplib';
 import { hashPassword, verifyPassword } from './password';
+import { ENTIDADES_AUDITABLES } from './auditoria.interceptor';
 
 const ROLES = new Set(['ADMINISTRADOR', 'RSI', 'DUENO_UNIDAD', 'LECTOR']);
 const ROLES_CON_TRABAJADOR = new Set(['DUENO_UNIDAD', 'LECTOR']);
@@ -32,8 +33,13 @@ export class AuthService {
     const algoritmo = datos.algoritmo ?? 'argon2';
     if (!['argon2', 'bcrypt'].includes(algoritmo))
       throw new BadRequestException('Algoritmo de contraseña no válido.');
-    if (algoritmo === 'bcrypt' && Buffer.byteLength(datos.password, 'utf8') > 72)
-      throw new BadRequestException('bcrypt admite hasta 72 bytes por contraseña.');
+    if (
+      algoritmo === 'bcrypt' &&
+      Buffer.byteLength(datos.password, 'utf8') > 72
+    )
+      throw new BadRequestException(
+        'bcrypt admite hasta 72 bytes por contraseña.',
+      );
     return this.prisma.usuario.create({
       data: {
         correo,
@@ -52,8 +58,12 @@ export class AuthService {
   }
 
   async login(datos: LoginDto) {
-    if (typeof datos?.correo !== 'string' || typeof datos?.password !== 'string' ||
-      datos.correo.length > 320 || datos.password.length > 1024)
+    if (
+      typeof datos?.correo !== 'string' ||
+      typeof datos?.password !== 'string' ||
+      datos.correo.length > 320 ||
+      datos.password.length > 1024
+    )
       throw new UnauthorizedException('Correo o contraseña incorrectos.');
     const usuario = await this.prisma.usuario.findUnique({
       where: { correo: datos.correo?.trim().toLowerCase() },
@@ -161,14 +171,42 @@ export class AuthService {
     });
   }
 
-  listarAuditoria() {
-    return this.prisma.auditEvent.findMany({
-      orderBy: { timestamp: 'desc' },
-      take: 200,
-      include: {
-        actor: { select: { correo: true } },
-      },
-    });
+  async listarAuditoria(
+    filtros: { entidad?: string; usuarioId?: string; pagina?: string } = {},
+  ) {
+    const { entidad, usuarioId } = filtros;
+    const pagina = Number(filtros.pagina ?? 1);
+    if (
+      entidad &&
+      !['AUTH', 'EXPORTACION', ...Object.keys(ENTIDADES_AUDITABLES)].includes(
+        entidad,
+      )
+    )
+      throw new BadRequestException('Entidad de auditoría inválida.');
+    if (
+      usuarioId &&
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        usuarioId,
+      )
+    )
+      throw new BadRequestException('Usuario de auditoría inválido.');
+    if (!Number.isSafeInteger(pagina) || pagina < 1 || pagina > 1000000)
+      throw new BadRequestException('Página de auditoría inválida.');
+    const where = {
+      ...(entidad && { entityType: entidad }),
+      ...(usuarioId && { actorUserId: usuarioId }),
+    };
+    const [eventos, total] = await Promise.all([
+      this.prisma.auditEvent.findMany({
+        where,
+        orderBy: [{ timestamp: 'desc' }, { id: 'desc' }],
+        take: 50,
+        skip: (pagina - 1) * 50,
+        include: { actor: { select: { correo: true } } },
+      }),
+      this.prisma.auditEvent.count({ where }),
+    ]);
+    return { eventos, total, pagina, porPagina: 50 };
   }
 
   async actualizarUsuario(
@@ -288,7 +326,11 @@ export class AuthService {
   }
 
   private validarPassword(password: string) {
-    if (typeof password !== 'string' || password.length < 12 || password.length > 1024)
+    if (
+      typeof password !== 'string' ||
+      password.length < 12 ||
+      password.length > 1024
+    )
       throw new UnauthorizedException(
         'La contraseña debe tener entre 12 y 1024 caracteres.',
       );

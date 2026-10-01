@@ -118,6 +118,20 @@ implementación ni madurez basándose en funcionalidades de la aplicación.
 
 ## Comprobaciones
 
+### Auditoría de gestión
+
+Las modificaciones de los módulos funcionales y las exportaciones se guardan
+en `AuditEvent` mediante una transacción común con la operación. El historial
+incluye campos anteriores y nuevos y es consultable solo por Administrador:
+
+```text
+GET /api/v1/auth/auditoria?entidad=ACTIVO&usuarioId={uuid}&pagina=1
+```
+
+Todos los filtros son opcionales. Devuelve `{ eventos, total, pagina, porPagina: 50 }`.
+La pantalla Auditoría permite filtrar y desplegar los cambios. Ver
+`docs/evidencias/auditoria-gestion.md` y `test/auditoria.e2e-spec.ts`.
+
 ```powershell
 npm.cmd run build
 npm.cmd test -- --runInBand

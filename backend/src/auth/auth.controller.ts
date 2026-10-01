@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -17,11 +18,17 @@ import { Roles } from './decorators/roles.decorator';
 import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
 import { Request } from 'express';
 import { PasskeyService } from './passkey.service';
-import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/server';
+import type {
+  AuthenticationResponseJSON,
+  RegistrationResponseJSON,
+} from '@simplewebauthn/server';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService, private readonly passkeys: PasskeyService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly passkeys: PasskeyService,
+  ) {}
 
   @Post('passkey/register/options')
   registroPasskeyOpciones(@Req() request: Request & { user?: { id: string } }) {
@@ -29,9 +36,15 @@ export class AuthController {
   }
 
   @Post('passkey/register/verify')
-  registrarPasskey(@Req() request: Request & { user?: { id: string } },
-    @Body() datos: { challengeId: string; response: RegistrationResponseJSON }) {
-    return this.passkeys.registrar(request.user!.id, datos?.challengeId, datos?.response);
+  registrarPasskey(
+    @Req() request: Request & { user?: { id: string } },
+    @Body() datos: { challengeId: string; response: RegistrationResponseJSON },
+  ) {
+    return this.passkeys.registrar(
+      request.user!.id,
+      datos?.challengeId,
+      datos?.response,
+    );
   }
 
   @Post('passkey/login/options')
@@ -42,8 +55,19 @@ export class AuthController {
 
   @Post('passkey/login/verify')
   @Public()
-  loginPasskey(@Body() datos: { challengeId: string; response: AuthenticationResponseJSON; codigoMfa?: string }) {
-    return this.passkeys.login(datos?.challengeId, datos?.response, datos?.codigoMfa);
+  loginPasskey(
+    @Body()
+    datos: {
+      challengeId: string;
+      response: AuthenticationResponseJSON;
+      codigoMfa?: string;
+    },
+  ) {
+    return this.passkeys.login(
+      datos?.challengeId,
+      datos?.response,
+      datos?.codigoMfa,
+    );
   }
 
   @Post('usuarios')
@@ -60,8 +84,12 @@ export class AuthController {
 
   @Get('auditoria')
   @Roles('ADMINISTRADOR')
-  listarAuditoria() {
-    return this.auth.listarAuditoria();
+  listarAuditoria(
+    @Query('entidad') entidad?: string,
+    @Query('usuarioId') usuarioId?: string,
+    @Query('pagina') pagina?: string,
+  ) {
+    return this.auth.listarAuditoria({ entidad, usuarioId, pagina });
   }
 
   @Patch('usuarios/:id')

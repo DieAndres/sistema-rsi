@@ -21,6 +21,13 @@
 .mfa-qr { background: #fff; border: 8px solid #fff; border-radius: 8px; height: 240px; image-rendering: pixelated; width: 240px; }
 @media (max-width: 700px) { .usuario-fila { grid-template-columns: 1fr; } }
 .auditoria-lista { display: grid; gap: 10px; margin-top: 24px; }
+.auditoria-filtros { align-items: center; display: flex; flex-wrap: wrap; gap: 16px; margin-top: 20px; }
+.auditoria-filtros label { display: grid; gap: 6px; }
+.auditoria-filtros select { border: 1px solid #cdd8dc; border-radius: 6px; padding: 8px; }
+.auditoria-detalle { grid-column: 1 / -1; overflow-wrap: anywhere; }
+.auditoria-detalle summary { cursor: pointer; }
+.auditoria-detalle dt { font-weight: 700; margin-top: 12px; }
+.auditoria-detalle dd { margin: 4px 0; white-space: pre-wrap; }
 .auditoria-fila { align-items: center; background: #fbfcfc; border: 1px solid #e2e9e9; border-radius: 8px; display: grid; gap: 12px; grid-template-columns: 150px 1fr 1fr 110px 190px; padding: 14px; }
 .auditoria-fila span, .auditoria-fila time { color: #647681; font-size: 13px; }
 @media (max-width: 900px) { .auditoria-fila { grid-template-columns: 1fr 1fr; } }
