@@ -1,3 +1,7 @@
+import { Skeleton } from '../../../shared/Skeleton'
+import { notificarGuardado } from '../../../shared/notificar'
+import { PageHeader } from '../../../shared/PageHeader'
+import { Asistente } from '../../../shared/Asistente'
 import { useEffect, useState } from 'react'
 import {
   actualizarUnidad,
@@ -21,6 +25,8 @@ function mensajeDeError(error: unknown, mensajePredeterminado: string) {
 }
 
 export function OrganigramaPage() {
+  const [asistenteAbierto, setAsistenteAbierto] = useState(false)
+
   const [organizaciones, setOrganizaciones] = useState<Organizacion[]>([])
   const [organizacionId, setOrganizacionId] = useState('')
   const [unidades, setUnidades] = useState<Unidad[]>([])
@@ -112,7 +118,7 @@ export function OrganigramaPage() {
     (organizacion) => organizacion.id === organizacionId,
   )
 
-  function prepararEdicion(unidad: Unidad) {
+  function prepararEdicion(unidad: Unidad) { setAsistenteAbierto(true);
     setUnidadEditando(unidad)
     setNombre(unidad.nombre)
     setTipo(unidad.tipo)
@@ -120,7 +126,7 @@ export function OrganigramaPage() {
     setResponsableId(unidad.responsable?.id ?? '')
   }
 
-  function limpiarFormulario() {
+  function limpiarFormulario() { setAsistenteAbierto(false);
     setUnidadEditando(null)
     setNombre('')
     setTipo('AREA')
@@ -138,7 +144,7 @@ export function OrganigramaPage() {
       if (unidadEditando) await actualizarUnidad(unidadEditando.id, datos)
       else await crearUnidad(organizacionId, datos)
       setUnidades(await listarUnidades(organizacionId, new AbortController().signal))
-      limpiarFormulario()
+      notificarGuardado(); limpiarFormulario()
     } catch (error) {
       setErrorUnidades(mensajeDeError(error, 'No se pudo guardar la unidad.'))
     } finally {
@@ -158,26 +164,10 @@ export function OrganigramaPage() {
 
   return (
     <div className="aplicacion">
-      <header className="barra-superior">
-        <a className="marca" href="/" aria-label="RSI, inicio">
-          <span className="marca-simbolo">R</span>
-          <span className="marca-texto">
-            <strong>RSI</strong>
-            <small>Gestión integrada</small>
-          </span>
-        </a>
-        <span className="entorno">Sistema de gestión</span>
-      </header>
+
 
       <main className="contenido">
-        <div className="encabezado-pagina">
-          <div>
-            <p className="sobretitulo">ORGANIZACIÓN</p>
-            <h1>Organigrama</h1>
-            <p className="introduccion">
-              Consultá la estructura y las personas responsables de cada unidad.
-            </p>
-          </div>
+        <PageHeader categoria="ORGANIZACIÓN" titulo="Organigrama" descripcion="Consultá la estructura y las personas responsables de cada unidad.">
 
           <label className="selector-organizacion">
             <span>Organización</span>
@@ -198,7 +188,7 @@ export function OrganigramaPage() {
               ))}
             </select>
           </label>
-        </div>
+        <div className="asistente-lanzador"><button className="boton-principal" type="button" onClick={() => { limpiarFormulario(); setErrorUnidades(''); setAsistenteAbierto(true) }}>＋ Nueva unidad</button></div></PageHeader>
 
         {errorOrganizaciones && (
           <p className="mensaje mensaje-error" role="alert">
@@ -221,7 +211,7 @@ export function OrganigramaPage() {
             </div>
           </div>
 
-          <form className="formulario-unidad" onSubmit={guardarUnidad}>
+          <Asistente abierto={asistenteAbierto} titulo={unidadEditando ? 'Editar unidad' : 'Nueva unidad'} error={errorUnidades} alCerrar={limpiarFormulario}><form className="formulario-unidad" onSubmit={guardarUnidad}>
             <h3>{unidadEditando ? 'Editar unidad' : 'Nueva unidad'}</h3>
             <label>Nombre<input value={nombre} onChange={(e) => setNombre(e.target.value)} required /></label>
             <label>Tipo<select value={tipo} onChange={(e) => setTipo(e.target.value as Unidad['tipo'])}>
@@ -237,12 +227,10 @@ export function OrganigramaPage() {
               {trabajadores.map((trabajador) => <option key={trabajador.id} value={trabajador.id}>{trabajador.nombre} · {trabajador.cargo}</option>)}
             </select></label>
             <div className="formulario-acciones"><button type="submit" disabled={guardando}>{guardando ? 'Guardando…' : unidadEditando ? 'Guardar cambios' : 'Crear unidad'}</button>{unidadEditando && <button type="button" onClick={limpiarFormulario}>Cancelar</button>}</div>
-          </form>
+          </form></Asistente>
 
           {cargandoUnidades && (
-            <p className="mensaje" role="status">
-              Cargando estructura…
-            </p>
+            <Skeleton />
           )}
 
           {errorUnidades && (

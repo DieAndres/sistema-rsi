@@ -1,7 +1,5 @@
-.formulario-cumplimiento { display: grid; gap: 12px; grid-template-columns: 2fr 1fr 1fr 2fr 1fr; margin: 24px 0 28px; }
-.formulario-cumplimiento h3, .formulario-cumplimiento .campo-ancho { grid-column: 1 / -1; margin-bottom: 0; }
-.formulario-cumplimiento label { color: #435660; display: grid; font-size: 12px; font-weight: 700; gap: 6px; }
-.formulario-cumplimiento input, .formulario-cumplimiento select, .formulario-cumplimiento textarea { border: 1px solid #cdd8dc; border-radius: 7px; font: inherit; padding: 8px 10px; }
+
+
 .lista-cumplimiento { display: grid; gap: 12px; }
 .formulario-hito { display: flex; gap: 8px; margin-top: 12px; }
 .formulario-hito input { border: 1px solid #cdd8dc; border-radius: 7px; flex: 1; padding: 8px; }
@@ -9,10 +7,10 @@
 .hito-linea button { font-size: 11px; padding: 4px 7px; }
 .exportaciones-grid { display: grid; gap: 12px; grid-template-columns: repeat(4, 1fr); }
 .exportaciones-grid button { min-height: 70px; }
-.exportaciones-grid button:nth-child(4) { display: none; }
+
 .resultado-exportacion { background: #102333; border-radius: 8px; color: #dbe7e9; margin-top: 24px; max-height: 520px; overflow: auto; padding: 18px; white-space: pre-wrap; }
 .acciones-exportacion { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
-.acciones-exportacion button:nth-child(2) { display: none; }
+
 .vista-previa-exportacion { background: white; border: 1px solid #dbe4e7; border-radius: 10px; color: #263b45; line-height: 1.5; margin-top: 16px; padding: 24px; }
 .vista-previa-exportacion h2 { color: #0c3047; margin-top: 0; }
 .vista-previa-exportacion h3 { color: #176b68; margin-top: 24px; }
@@ -28,5 +26,7 @@
 .soa-control small { color: #75868c; }
 .soa-control.seleccionado { border-color: #176b68; box-shadow: 0 0 0 2px #d5eeec; }
 .soa-formulario { margin-top: 20px; }
-@media print { .barra-superior, .encabezado-pagina, .exportaciones-grid, .acciones-exportacion, .mensaje { display: none !important; } .contenido { margin: 0; max-width: none; } .panel-estructura { border: 0; box-shadow: none; padding: 0; } .vista-previa-exportacion { border: 0; } }
+@media print {
+
+ .vista-previa-exportacion { border: 0; } }
 @media (max-width: 760px) { .exportaciones-grid { grid-template-columns: 1fr 1fr; } }

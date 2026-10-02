@@ -1,3 +1,6 @@
+import { PageHeader } from '../../shared/PageHeader'
+import { Skeleton } from '../../shared/Skeleton'
+import { Badge } from '../../shared/Badge'
 import { useEffect, useState } from 'react'
 import { apiGet } from '../../shared/api/apiGet'
 import './auth.css'
@@ -47,22 +50,21 @@ export function AuditoriaPage() {
   }, [entidad, usuarioId, pagina])
 
   return (
-    <main className="pagina">
-      <h1>Auditoría</h1>
-      <p>Historial de operaciones del sistema.</p>
+    <main className="contenido">
+      <PageHeader categoria="ADMINISTRACIÓN" titulo="Auditoría" descripcion="Consultá las operaciones, sus responsables y los cambios registrados." />
       <div className="auditoria-filtros">
         <label>Entidad<select value={entidad} onChange={e => { setCargando(true); setError(''); setEntidad(e.target.value); setPagina(1) }}><option value="">Todas las entidades</option>{entidades.map(tipo => <option key={tipo}>{tipo}</option>)}</select></label>
         <label>Usuario<select value={usuarioId} onChange={e => { setCargando(true); setError(''); setUsuarioId(e.target.value); setPagina(1) }}><option value="">Todos los usuarios</option>{usuarios.map(usuario => <option key={usuario.id} value={usuario.id}>{usuario.correo}</option>)}</select></label>
       </div>
-      {error && <p className="mensaje-error">{error}</p>}
-      {cargando && <p role="status">Cargando auditoría…</p>}
+      {error && <p className="mensaje mensaje-error" role="alert">{error}</p>}
+      {cargando && <Skeleton />}
       <div className="auditoria-lista">
         {!cargando && !error && eventos.map((evento) => (
           <article className="auditoria-fila" key={evento.id}>
             <strong>{evento.action}</strong>
             <span>{evento.actor?.correo ?? 'Sistema'}</span>
             <span>{evento.entityType}{evento.entityId ? ` · ${evento.entityId}` : ''}</span>
-            <span>{evento.result}</span>
+            <Badge>{evento.result}</Badge>
             <time dateTime={evento.timestamp}>{new Date(evento.timestamp).toLocaleString()}</time>
             {evento.metadata?.campos && evento.metadata.campos.length > 0 && <details className="auditoria-detalle"><summary>Ver cambios</summary><dl>{evento.metadata.campos.map(campo => <div key={campo}><dt>{campo}</dt><dd>Anterior: {valor(evento.metadata?.anterior?.[campo])}</dd><dd>Nuevo: {valor(evento.metadata?.nuevo?.[campo])}</dd></div>)}</dl></details>}
             {evento.metadata?.documento && <span>Documento: {evento.metadata.documento}</span>}

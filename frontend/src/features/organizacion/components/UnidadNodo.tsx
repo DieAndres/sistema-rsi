@@ -33,7 +33,7 @@ export function UnidadNodo({ unidad, onEditar, onEliminar }: Props) {
         {(onEditar || onEliminar) && (
           <div className="unidad-acciones">
             {onEditar && <button type="button" onClick={() => onEditar(unidad)}>Editar</button>}
-            {onEliminar && <button type="button" onClick={() => onEliminar(unidad)}>Eliminar</button>}
+            {onEliminar && <button className="boton-destructivo" type="button" onClick={() => onEliminar(unidad)}>Eliminar</button>}
           </div>
         )}
       </article>

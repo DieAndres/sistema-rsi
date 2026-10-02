@@ -1,3 +1,7 @@
+import { Skeleton } from '../../../shared/Skeleton'
+import { Asistente } from '../../../shared/Asistente'
+import { Tabla } from '../../../shared/Tabla'
+import { Badge } from '../../../shared/Badge'
 import { useEffect, useState } from 'react'
 import { apiRequest } from '../../organizacion/api/organizacionApi'
 
@@ -7,6 +11,8 @@ type Medicion = { id: string; valor: number; fechaRegistro: string }
 const vacio = { codigo: '', nombre: '', descripcion: '', formula: '', meta: '0', activo: true }
 
 export function IndicadoresKpi() {
+  const [asistenteAbierto, setAsistenteAbierto] = useState(false)
+
   const [formulas, setFormulas] = useState<Formula[]>([])
   const [indicadores, setIndicadores] = useState<Indicador[]>([])
   const [datos, setDatos] = useState(vacio)
@@ -46,12 +52,12 @@ export function IndicadoresKpi() {
     return () => controller.abort()
   }, [seleccionado, recargaHistorico])
 
-  function limpiar() {
+  function limpiar() { setAsistenteAbierto(false);
     setEditando(null)
     setDatos({ ...vacio, formula: formulas[0]?.codigo ?? '' })
   }
 
-  function editar(indicador: Indicador) {
+  function editar(indicador: Indicador) { setAsistenteAbierto(true);
     setEditando(indicador.id)
     setDatos({ ...indicador, descripcion: indicador.descripcion ?? '', meta: String(indicador.meta) })
     setError('')
@@ -114,8 +120,8 @@ export function IndicadoresKpi() {
     <div className="panel-encabezado"><div><p className="sobretitulo">CONFIGURACIÓN E HISTÓRICO</p><h2>Indicadores y metas</h2><p>Elegí una fórmula del catálogo y registrá mediciones para conservar su evolución.</p></div></div>
     {error && <p className="mensaje mensaje-error" role="alert">{error}</p>}
     {mensaje && <p className="mensaje" role="status">{mensaje}</p>}
-    {cargando ? <p role="status">Cargando configuración…</p> : <>
-      <form onSubmit={guardar}>
+    {cargando ? <Skeleton /> : <>
+      <div className="asistente-lanzador"><button className="boton-principal" type="button" onClick={() => { limpiar(); setError(''); setAsistenteAbierto(true) }}>＋ Nuevo indicador</button></div><Asistente abierto={asistenteAbierto} titulo={editando ? 'Editar indicador' : 'Nuevo indicador'} error={error} alCerrar={limpiar}><form onSubmit={guardar}>
         <fieldset className="kpi-formulario" disabled={ocupado || formulas.length === 0}>
           <legend>{editando ? 'Editar indicador' : 'Nuevo indicador'}</legend>
           <label>Código<input value={datos.codigo} disabled={Boolean(editando)} required maxLength={50} pattern="[A-Z][A-Z0-9_]{1,49}" onChange={e => setDatos({ ...datos, codigo: e.target.value.toUpperCase() })} /><small>Entre 2 y 50 caracteres: mayúsculas, números o guion bajo.</small></label>
@@ -126,20 +132,20 @@ export function IndicadoresKpi() {
           {editando && <label className="kpi-activo"><input type="checkbox" checked={datos.activo} onChange={e => setDatos({ ...datos, activo: e.target.checked })} /> Indicador activo</label>}
           <div className="kpi-acciones kpi-campo-ancho"><button type="submit">{ocupado ? 'Guardando…' : editando ? 'Guardar cambios' : 'Crear indicador'}</button>{editando && <button type="button" onClick={limpiar}>Cancelar edición</button>}</div>
         </fieldset>
-      </form>
-      <div className="kpi-tabla"><table><caption>Indicadores configurados</caption><thead><tr><th scope="col">Indicador</th><th scope="col">Fórmula</th><th scope="col">Meta</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead><tbody>{indicadores.map(i => <tr key={i.id}><td><strong>{i.nombre}</strong><small>{i.codigo}</small>{i.descripcion && <small>{i.descripcion}</small>}</td><td>{formulas.find(f => f.codigo === i.formula)?.nombre ?? i.formula}</td><td>{i.meta}{formulas.find(f => f.codigo === i.formula)?.unidad === 'PORCENTAJE' ? '%' : ''}</td><td>{i.activo ? 'Activo' : 'Inactivo'}</td><td><button type="button" disabled={ocupado} onClick={() => editar(i)} aria-label={`Editar ${i.nombre}`}>Editar</button></td></tr>)}</tbody></table></div>
+      </form></Asistente>
+      <Tabla titulo="Indicadores configurados" columnas={['Indicador', 'Fórmula', 'Meta', 'Estado', 'Acciones']} filas={indicadores.map(i => ({ id: i.id, texto: i.nombre + ' ' + i.codigo + ' ' + (i.descripcion ?? ''), celdas: [<><strong>{i.nombre}</strong><small>{i.codigo}</small>{i.descripcion && <small>{i.descripcion}</small>}</>, formulas.find(f => f.codigo === i.formula)?.nombre ?? i.formula, String(i.meta) + (formulas.find(f => f.codigo === i.formula)?.unidad === 'PORCENTAJE' ? '%' : ''), <Badge>{i.activo ? 'ACTIVO' : 'INACTIVO'}</Badge>, <button type="button" disabled={ocupado} onClick={() => editar(i)} aria-label={`Editar ${i.nombre}`}>Editar</button>] }))} />
       {indicadores.length === 0 && <p>No hay indicadores configurados. Creá el primero para comenzar.</p>}
       <div className="kpi-historico">
         <h3>Histórico de mediciones</h3>
         <div className="kpi-acciones"><label>Indicador<select value={seleccionado} disabled={ocupado} onChange={e => verHistorico(e.target.value)}><option value="">Seleccioná un indicador</option>{indicadores.map(i => <option key={i.id} value={i.id}>{i.nombre}{i.activo ? '' : ' (inactivo)'}</option>)}</select></label><button type="button" onClick={() => void medir()} disabled={!indicadorActual?.activo || ocupado || cargandoHistorico || Boolean(errorHistorico)}>{ocupado ? 'Procesando…' : 'Registrar medición actual'}</button></div>
-        <p>El backend calcula el valor con los datos actuales. Las mediciones se guardan al pulsar el botón; no se capturan automáticamente.</p>
+        <p>El valor se calcula con los datos actuales de la organización. Las mediciones se guardan al pulsar el botón; no se capturan automáticamente.</p>
         {seleccionado && <button type="button" disabled={ocupado || cargandoHistorico} onClick={() => { setErrorHistorico(''); setCargandoHistorico(true); setRecargaHistorico(v => v + 1) }}>Actualizar histórico</button>}
         {indicadorActual && !indicadorActual.activo && <p>Este indicador está inactivo. Podés consultar su histórico, pero no registrar nuevas mediciones.</p>}
         {errorHistorico && <p className="mensaje mensaje-error" role="alert">{errorHistorico}</p>}
-        {cargandoHistorico && <p role="status">Cargando histórico…</p>}
+        {cargandoHistorico && <Skeleton filas={2} />}
         {indicadorActual && !cargandoHistorico && !errorHistorico && <>
           {ultima && <p><strong>Último valor: {ultima.valor}</strong> · Meta actual: {indicadorActual.meta}</p>}
-          <div className="kpi-tabla"><table><caption>Mediciones de {indicadorActual.nombre}</caption><thead><tr><th scope="col">Fecha y hora</th><th scope="col">Valor registrado</th></tr></thead><tbody>{historico.map(m => <tr key={m.id}><td><time dateTime={m.fechaRegistro}>{new Date(m.fechaRegistro).toLocaleString()}</time></td><td>{m.valor}</td></tr>)}</tbody></table></div>
+          <Tabla titulo={`Mediciones de ${indicadorActual.nombre}`} columnas={['Fecha y hora', 'Valor registrado']} filas={historico.map(m => ({ id: m.id, texto: m.fechaRegistro, celdas: [<time dateTime={m.fechaRegistro}>{new Date(m.fechaRegistro).toLocaleString()}</time>, m.valor] }))} />
           {historico.length === 0 && <p>Todavía no hay mediciones para este indicador.</p>}
           <small>El histórico conserva valor y fecha. Cambiar la fórmula o la meta no recalcula los registros anteriores.</small>
         </>}

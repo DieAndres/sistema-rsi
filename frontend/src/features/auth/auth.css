@@ -4,12 +4,7 @@
 .login-panel label { color: #435660; display: grid; font-size: 13px; font-weight: 700; gap: 6px; }
 .login-panel input { border: 1px solid #cdd8dc; border-radius: 7px; font: inherit; height: 42px; padding: 0 10px; }
 .login-panel button { background: #245f5b; color: #fff; margin-top: 8px; padding: 11px; }
-.formulario-usuario { display: grid; gap: 14px; max-width: 560px; }
-.formulario-usuario h2 { color: #102333; font-size: 20px; margin-bottom: 4px; }
-.formulario-usuario label { color: #435660; display: grid; font-size: 13px; font-weight: 700; gap: 6px; }
-.formulario-usuario input, .formulario-usuario select { border: 1px solid #cdd8dc; border-radius: 7px; font: inherit; height: 42px; padding: 0 10px; }
-.formulario-usuario small { color: #647681; font-weight: 400; }
-.formulario-usuario button { background: #245f5b; color: #fff; padding: 11px; width: fit-content; }
+
 .mensaje-exito { background: #edf8f3; border: 1px solid #b8dfcf; border-radius: 8px; color: #24644f; padding: 12px 14px; }
 .usuarios-lista { border-top: 1px solid #edf1f2; display: grid; gap: 12px; margin-top: 32px; padding-top: 24px; }
 .usuarios-lista h2 { color: #102333; font-size: 20px; }
