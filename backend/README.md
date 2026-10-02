@@ -22,6 +22,21 @@ La variable `DATABASE_URL` debe estar definida en `backend/.env`.
 
 ## Ejecución
 
+Para iniciar el backend en Docker, desde la raíz del repositorio:
+
+```powershell
+docker compose up -d --build backend
+docker compose logs --tail 50 backend
+```
+
+La API queda disponible en `http://localhost:3001/api/v1`, compatible con el
+proxy del frontend. El contenedor usa `backend/.env` y cambia únicamente el host
+y puerto de PostgreSQL a `postgres:5432`, manteniendo las credenciales y la base
+configuradas. Reutiliza el volumen existente y no ejecuta migraciones al iniciar.
+Los archivos `.env` y `node_modules` locales quedan fuera de la imagen.
+
+Para detener solo el backend: `docker compose stop backend`.
+
 ```powershell
 npm.cmd run start:dev
 ```
