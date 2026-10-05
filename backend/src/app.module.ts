@@ -15,9 +15,11 @@ import { AuthGuard } from './auth/auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { ReadOnlyGuard } from './auth/read-only.guard';
 import { UnitScopeGuard } from './auth/unit-scope.guard';
+import { DatosModule } from './datos/datos.module';
 
 @Module({
   imports: [
+    DatosModule,
     OrganizacionModule,
     SeguridadModule,
     CumplimientoModule,
