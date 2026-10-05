@@ -1,0 +1,12 @@
+**
+!frontend/
+!frontend/**
+!infrastructure/
+!infrastructure/nginx/
+!infrastructure/nginx/default.conf
+**/node_modules
+**/dist
+**/.env
+**/.env.*
+**/.git
+**/*.log

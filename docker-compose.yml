@@ -1,4 +1,19 @@
 services:
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    environment:
+      PUBLIC_ORIGIN: "${PUBLIC_ORIGIN:-https://localhost:8443}"
+      NGINX_ENVSUBST_FILTER: '^PUBLIC_ORIGIN$'
+    ports:
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-8080}:80"
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_HTTPS_PORT:-8443}:443"
+    volumes:
+      - ${TLS_CERT_DIRECTORY:-./infrastructure/nginx/certs}:/etc/nginx/certs:ro
+    depends_on:
+      - backend
   backend:
     build: ./backend
     container_name: sistema-rsi-backend
@@ -7,8 +22,7 @@ services:
       - ./backend/.env
     environment:
       PORT: "3001"
-    ports:
-      - "127.0.0.1:3001:3001"
+      WEBAUTHN_ORIGIN: "${PUBLIC_ORIGIN:-https://localhost:8443}"
     depends_on:
       postgres:
         condition: service_healthy

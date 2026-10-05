@@ -9,6 +9,7 @@ coverage/
 *.tsbuildinfo
 postgres-data/
 uploads/
+infrastructure/nginx/certs/
 .codex/
 backend/dev.db
 docs/99-Bitacora-Trabajo.md

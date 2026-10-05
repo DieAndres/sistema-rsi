@@ -1,5 +1,12 @@
 # Docker
 
+## Frontend de producción con Nginx
+
+`docker compose up -d --build` también construye el servicio `frontend`, que
+incluye React compilado y Nginx en un mismo contenedor. La aplicación queda en
+http://localhost:8080. Consultar [configuración de Nginx](../nginx/README.md)
+para las variables del origen público, las verificaciones y el despliegue HTTPS.
+
 ## PostgreSQL local
 
 ## Requisitos
