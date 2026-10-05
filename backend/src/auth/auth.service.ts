@@ -9,7 +9,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CrearUsuarioDto } from './dto/crear-usuario.dto';
 import { LoginDto } from './dto/login.dto';
 import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
-import { generateSecret, generateURI, verifySync } from 'otplib';
+import { generateSecret, generateURI } from 'otplib';
+import { verificarTotp } from './totp';
 import { hashPassword, verifyPassword } from './password';
 import { ENTIDADES_AUDITABLES } from './auditoria.interceptor';
 
@@ -78,11 +79,7 @@ export class AuthService {
     }
     const mfaObligatorio = ['ADMINISTRADOR', 'RSI'].includes(usuario.rol);
     if (usuario.mfaConfirmado) {
-      if (
-        !datos.codigoMfa ||
-        !usuario.mfaSecret ||
-        !verifySync({ token: datos.codigoMfa, secret: usuario.mfaSecret }).valid
-      ) {
+      if (!verificarTotp(usuario.mfaSecret, datos.codigoMfa)) {
         await this.registrarAuditoria(
           'MFA_FAILURE',
           usuario.id,
@@ -119,17 +116,32 @@ export class AuthService {
       where: { id: usuarioId },
     });
     if (!usuario) throw new NotFoundException('Usuario no encontrado.');
-    const secret = generateSecret();
-    await this.prisma.usuario.update({
+    if (usuario.mfaConfirmado)
+      throw new BadRequestException('MFA ya está activado.');
+    if (!usuario.mfaSecret) {
+      // La condición evita que solicitudes simultáneas creen dos QR diferentes.
+      await this.prisma.usuario.updateMany({
+        where: { id: usuarioId, mfaSecret: null, mfaConfirmado: false },
+        data: { mfaSecret: generateSecret() },
+      });
+    }
+    const pendiente = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
-      data: { mfaSecret: secret, mfaConfirmado: false },
     });
+    if (!pendiente?.mfaSecret || pendiente.mfaConfirmado)
+      throw new BadRequestException(
+        'La configuración MFA cambió. Recargá la página.',
+      );
+    const secret = pendiente.mfaSecret;
     return {
       secret,
       otpauthUri: generateURI({
         secret,
         issuer: 'Sistema RSI',
         label: usuario.correo,
+        algorithm: 'sha1',
+        digits: 6,
+        period: 30,
       }),
     };
   }
@@ -138,16 +150,17 @@ export class AuthService {
     const usuario = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
     });
-    if (
-      !usuario?.mfaSecret ||
-      !verifySync({ token: codigo, secret: usuario.mfaSecret }).valid
-    ) {
+    if (!usuario?.mfaSecret || !verificarTotp(usuario.mfaSecret, codigo)) {
       throw new UnauthorizedException('El código MFA es inválido.');
     }
-    await this.prisma.usuario.update({
-      where: { id: usuarioId },
+    const activacion = await this.prisma.usuario.updateMany({
+      where: { id: usuarioId, mfaSecret: usuario.mfaSecret },
       data: { mfaConfirmado: true },
     });
+    if (!activacion.count)
+      throw new UnauthorizedException(
+        'La configuración MFA cambió. Escaneá el QR actual.',
+      );
     await this.registrarAuditoria(
       'MFA_ENABLED',
       usuarioId,

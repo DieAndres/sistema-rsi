@@ -13,7 +13,7 @@ import type {
   AuthenticationResponseJSON,
   RegistrationResponseJSON,
 } from '@simplewebauthn/server';
-import { verifySync } from 'otplib';
+import { verificarTotp } from './totp';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from './auth.service';
 
@@ -98,7 +98,7 @@ export class PasskeyService {
       if (!result.verified) throw new Error('Verification failed');
       // Una llave U2F antigua sin verificación de usuario solo sirve como segundo factor.
       if (!result.authenticationInfo.userVerified &&
-        (!user.mfaSecret || !codigoMfa || !verifySync({ token: codigoMfa, secret: user.mfaSecret }).valid))
+        !verificarTotp(user.mfaSecret, codigoMfa))
         throw new UnauthorizedException('Se requiere el código TOTP con esta llave.');
       await this.prisma.passkey.update({ where: { id: key.id }, data: { counter: result.authenticationInfo.newCounter } });
       const token = await this.auth.crearSesion(user.id);

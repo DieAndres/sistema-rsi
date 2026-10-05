@@ -18,11 +18,11 @@ export function LoginPage({ onLogin }: { onLogin: (mfaSetupRequired: boolean | u
     setError('')
     setCargando(true)
     try {
-      const respuesta = await fetch('/api/v1/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correo, password, ...(codigoMfa && { codigoMfa }) }) })
+      const respuesta = await fetch('/api/v1/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correo, password, ...(codigoMfa.trim() && { codigoMfa: codigoMfa.replace(/\s/g, '') }) }) })
       if (!respuesta.ok) {
         const detalle = await respuesta.json() as { message?: string }
         if (detalle.message?.includes('MFA')) setRequiereMfa(true)
-        throw new Error(detalle.message?.includes('MFA') ? 'Ingresá el código de tu aplicación autenticadora.' : 'Correo o contraseña incorrectos.')
+        throw new Error(detalle.message?.includes('MFA') ? (codigoMfa.trim() ? 'El código MFA no coincide. Intentá con un código nuevo y verificá la hora del teléfono.' : 'Ingresá el código de tu aplicación autenticadora.') : 'Correo o contraseña incorrectos.')
       }
       const datos = await respuesta.json() as { token: string; mfaSetupRequired?: boolean; usuario: UsuarioLogin }
       guardarToken(datos.token)
@@ -47,5 +47,5 @@ export function LoginPage({ onLogin }: { onLogin: (mfaSetupRequired: boolean | u
     finally { setCargando(false) }
   }
 
-  return <main className="login-pagina"><form className="login-panel" onSubmit={ingresar}><div className="marca"><span className="marca-simbolo">R</span><span>RSI · Gestión integrada</span></div><h1>Iniciar sesión</h1><p className="introduccion">Accedé con tu cuenta autorizada.</p>{error && <p className="mensaje mensaje-error" role="alert">{error}</p>}<label>Correo<input type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} required autoComplete="username" /></label><label>Contraseña<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" /></label>{requiereMfa && <label>Código MFA<input inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={codigoMfa} onChange={(e) => setCodigoMfa(e.target.value)} autoComplete="one-time-code" /></label>}<button type="submit" disabled={cargando}>{cargando ? 'Ingresando...' : 'Ingresar'}</button><div className="login-alternativa"><p>También podés acceder con tu dispositivo</p><button type="button" disabled={cargando || !correo} onClick={() => void ingresarConPasskey()}>Entrar con passkey / Windows Hello</button></div></form></main>
+  return <main className="login-pagina"><form className="login-panel" onSubmit={ingresar}><div className="marca"><span className="marca-simbolo">R</span><span>RSI · Gestión integrada</span></div><h1>Iniciar sesión</h1><p className="introduccion">Accedé con tu cuenta autorizada.</p>{error && <p className="mensaje mensaje-error" role="alert">{error}</p>}<label>Correo<input type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} required autoComplete="username" /></label><label>Contraseña<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" /></label>{requiereMfa && <label>Código MFA<input inputMode="numeric" pattern="[0-9]{6}" maxLength={12} value={codigoMfa} onChange={(e) => setCodigoMfa(e.target.value.replace(/\s/g, '').slice(0, 6))} autoComplete="one-time-code" /></label>}<button type="submit" disabled={cargando}>{cargando ? 'Ingresando...' : 'Ingresar'}</button><div className="login-alternativa"><p>También podés acceder con tu dispositivo</p><button type="button" disabled={cargando || !correo} onClick={() => void ingresarConPasskey()}>Entrar con passkey / Windows Hello</button></div></form></main>
 }
