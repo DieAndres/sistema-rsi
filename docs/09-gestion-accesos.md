@@ -1,138 +1,123 @@
-# Gestión de identidades y accesos del Sistema RSI
+# Gestión de Identidades y Accesos del Sistema RSI
 
-Este documento regula el acceso al **Sistema de Gestión Integrada para el RSI**: cuentas, autenticación, sesiones, permisos y auditoría. Los trabajadores y organizaciones registrados son datos administrados por la aplicación; no se convierten por ello en operadores del sistema.
+Este documento regula las cuentas y permisos de quienes utilizan u operan la plataforma RSI, su autenticación, sesiones y credenciales. Las organizaciones y trabajadores almacenados son datos de gestión: registrar un trabajador no le concede una cuenta ni lo convierte en administrador del sistema. El alcance es la versión local y las condiciones necesarias para habilitar acceso remoto.
 
 ## Encabezado de mapeo normativo
 
-| Marco | Ítem verificado | Aporte al Sistema RSI |
+| Marco | Ítem | Detalle / aporte |
 |---|---|---|
-| MCU 5.0 | Proteger (PR), PR.AA — Gestión de identidades, autenticación y control de acceso | Orienta la gestión de cuentas, credenciales, autenticación y permisos de la aplicación. |
-| MCU 5.0 | PR.AA-01, PR.AA-03 y PR.AA-05; requisitos CA.1, CA.2 y CA.6 | Relaciona alta de identidades, autenticación y mínimo privilegio con la revisión de derechos de acceso. El registro de usuarios y los guards aportan evidencia parcial; la revisión periódica requiere un acta. |
-| COBIT 2019 | DSS05 — Gestionar servicios de seguridad; APO13 — Gestionar seguridad | Referencia para administrar controles de acceso y supervisar su operación, sin afirmar un nivel de capacidad COBIT. |
-| ISO/IEC 27001:2022 e ISO/IEC 27002:2022 | Anexo A: 5.15 (control de acceso), 5.16 (gestión de identidades), 5.17 (información de autenticación), 5.18 (derechos de acceso), 8.2 (privilegios) y 8.5 (autenticación segura) | Orientan las reglas de cuentas, permisos y autenticación del RSI. El documento no declara conformidad con esos controles. |
-| BCU — Guía de estándares mínimos de gestión | CA.1 — Gestionar acceso lógico; CA.2 — Revisar privilegios de acceso lógico | Referencia de buenas prácticas para el RSI. No se atribuyen al proyecto obligaciones de una entidad financiera supervisada. |
-| Ley 18.331 | Art. 10 — Principio de seguridad de los datos | El control de acceso contribuye a evitar consulta o tratamiento no autorizado de los datos personales procesados por la aplicación. |
+| MCU 5.0 | Proteger; PR.AA | Identidades, autenticación y control de acceso. |
+| COBIT 2019 | DSS05 y APO13 | Administración y supervisión de usuarios y permisos. |
+| ISO/IEC 27001:2022 e ISO/IEC 27002:2022 | A.5.15 a A.5.18; A.8.2 a A.8.5 | Accesos, identidades, credenciales, privilegios y autenticación segura. |
+| BCU — Guía de Seguridad de la Información | Autenticación y accesos | Referencia de la consigna. El RSI no realiza transferencias financieras ni se presume una entidad supervisada. |
+| Ley 18.331 | Art. 10 | Seguridad de datos personales mediante restricción de accesos. |
+| Consigna del proyecto | RF-14, RF-15, RF-16 y RNF-04 | TOTP, WebAuthn/Windows Hello, algoritmos de hash, roles, auditoría y seguridad administrativa. |
 
-La consigna exige **RF-14** (TOTP, WebAuthn/U2F, Windows Hello y selección de Argon2/bcrypt), **RF-15** (roles y permisos), **RF-16** (auditoría), **RNF-04** (TLS y MFA administrativo) y **RNF-05** (retención de auditoría). El objetivo MCU 5.0 Avanzado no se considera alcanzado por este documento.
+El mapeo adapta las referencias de ejemplo al propio RSI. No se acredita certificación ni cumplimiento del perfil MCU Avanzado. Argon2/bcrypt son funciones de hash de contraseñas; U2F/WebAuthn son mecanismos de autenticación y no alternativas de hash.
 
 ## Control del documento
 
 | Campo | Valor |
 |---|---|
 | Código | SI-IAM-09 |
-| Versión | 1.2 — propuesta |
-| Responsable | Responsable de seguridad u operación del Sistema RSI, por designar |
-| Fecha | 30/09/2026 |
-| Aprobación | Pendiente de registrar |
-| Próxima revisión | Un año después de la aprobación o ante cambios relevantes de autenticación |
+| Versión | 1.3 — propuesta |
+| Responsable | RSI o responsable de seguridad de la plataforma, por designar |
+| Fecha | 03/10/2026 |
+| Aprobación | Pendiente |
+| Estado | Controles en código; validaciones operativas y revisión de accesos pendientes |
+| Revisión | Antes del acceso remoto, al cambiar permisos o autenticación y anualmente tras aprobación |
 
 ### Historial de versiones
 
 | Versión | Fecha | Autor | Cambios |
 |---|---|---|---|
-| 1.0 | 30/09/2026 | Equipo del proyecto | Reescritura según la plantilla ISACA y el código actual del RSI. |
-| 1.1 | 30/09/2026 | Equipo del proyecto | Retiro de la sección «Evidencia y decisiones pendientes». |
-| 1.2 | 30/09/2026 | Equipo del proyecto | Administrador inicial siempre creado con Argon2id. |
+| 1.0 | 30/09/2026 | Equipo del proyecto | Redacción inicial centrada en la plataforma. |
+| 1.1 | 30/09/2026 | Equipo del proyecto | Ajuste de organización del documento. |
+| 1.2 | 30/09/2026 | Equipo del proyecto | Administrador inicial con Argon2id. |
+| 1.3 | 03/10/2026 | Equipo del proyecto | Estructura de la plantilla, tablas y revisión de permisos, factores, secretos y cobertura de auditoría actual. |
 
 ## 1. Modelo de autenticación
 
-El backend usa cuentas propias (`Usuario`), sesiones persistidas (`Sesion`) y un token Bearer aleatorio. Guarda en PostgreSQL **el hash SHA-256 del token**, comprueba que la sesión no haya vencido y que el usuario siga activo. La sesión vence a las ocho horas; `logout` elimina la sesión. El frontend conserva el token Bearer en `localStorage`, una decisión actual que requiere revisar el riesgo de exposición ante XSS antes del despliegue.
+El backend guarda usuarios y sesiones en PostgreSQL. Genera un token Bearer aleatorio, conserva su hash SHA-256, verifica caducidad y estado activo del usuario y elimina la sesión al cerrar sesión. La duración actual es de ocho horas. El frontend conserva el token en `localStorage`; PT02 del análisis de riesgos contempla revisar ese mecanismo por exposición ante ejecución de scripts en el mismo origen.
 
-| Factor o mecanismo | Implementación del RSI | Estado |
-|---|---|---|
-| Contraseña | Hash Argon2id por defecto o bcrypt seleccionado al crear la cuenta; verificación de hashes scrypt anteriores. | Implementado en código y cubierto por `backend/src/auth/password.spec.ts`. |
-| TOTP | Alta mediante secreto y URI de autenticador; confirmación con código; exigido al iniciar sesión si la cuenta tiene MFA confirmado. | Implementado en backend y frontend. Para Administrador y RSI, el guard bloquea otras rutas mientras no configuren MFA. |
-| Passkey WebAuthn | Alta desde una sesión autenticada; inicio de sesión con clave pública, desafío de cinco minutos, comprobación de origen, RP ID, firma y contador. | Implementado en código; pruebas automatizadas de desafíos vencidos/reutilizados. |
-| Windows Hello | Puede actuar como autenticador de plataforma a través de WebAuthn en Windows; el RSI no recibe PIN ni biometría. | Compatibilidad del flujo implementada; falta evidencia de prueba en dispositivo real. |
-| Llave U2F sin verificación de usuario | El backend solicita además TOTP para iniciar sesión. | Regla implementada; falta evidencia de prueba con llave física. |
+| Factor o mecanismo | Implementación del RSI | Solicitud o intervalo | Estado |
+|---|---|---|---|
+| Contraseña | Argon2id por defecto o bcrypt al crear la cuenta; verificación compatible con hashes scrypt anteriores | Inicio de sesión por contraseña | Implementado en código; pruebas documentadas en `evidencias/pruebas-automatizadas-backend.md`. |
+| TOTP | Secreto, URI de autenticador y confirmación de código | Login si la cuenta tiene MFA confirmado; Administrador y RSI deben configurarlo para acceder a rutas de gestión | Implementado. Semilla almacenada directamente en BD; protección adicional pendiente. |
+| Passkey WebAuthn | Clave pública en BD, desafío de cinco minutos y verificación de origen, RP ID, firma y contador | Registro desde sesión autenticada e inicio de sesión por passkey | Implementado; pruebas reales con autenticadores pendientes. |
+| Windows Hello | Autenticador de plataforma utilizado mediante WebAuthn; PIN y biometría permanecen fuera del RSI | Cuando el navegador y el usuario seleccionan ese autenticador | Flujo compatible en código; registro y login en dispositivo real pendientes de evidencia. |
+| Llave sin verificación de usuario | WebAuthn/U2F acompañado de TOTP si el autenticador no verifica al usuario | Login con ese tipo de llave | Regla implementada; prueba con llave física pendiente. |
 
-Windows Hello no es un tercer factor que el RSI controle por separado. El navegador y el sistema operativo eligen el autenticador WebAuthn disponible.
+Windows Hello no constituye por sí solo un tercer factor gestionado por el RSI: un PIN no es biometría y la aplicación recibe la respuesta WebAuthn, no esos datos.
 
 ### Política de factores según operación
 
-| Operación del RSI | Regla actual |
-|---|---|
-| Inicio de sesión con contraseña | Contraseña; TOTP si la cuenta tiene MFA confirmado. |
-| Inicio de sesión de Administrador o RSI | Debe completar el alta de TOTP antes de acceder a las demás rutas. |
-| Inicio de sesión con passkey | WebAuthn con verificación de usuario; si el autenticador no verifica al usuario, se exige TOTP. |
-| Registro de una passkey | Sesión autenticada; para Administrador y RSI, TOTP ya confirmado. |
-| Alta o cambio de usuarios y roles | Solo Administrador, mediante el guard de roles; no existe una nueva comprobación de factor por cada cambio. |
-| Consulta de auditoría | Solo Administrador. |
-
-Estas reglas describen el código actual. La plantilla incluye operaciones de un **gestor de contraseñas y contraseña maestra** que no existen en el RSI y no se incorporan aquí.
-
-## 2. Gestión de identidades: provisión y desprovisión
-
-| Proceso | Procedimiento del RSI | Estado y decisión pendiente |
+| Operación | Factor mínimo aplicado actualmente | Mecanismo y límite |
 |---|---|---|
-| Alta | El Administrador crea la cuenta con correo único, contraseña, rol y trabajador asociado cuando corresponde. El rol inicial es LECTOR. | API y pantalla de usuarios implementadas; falta definir quién autoriza cada alta y conservar esa autorización. |
-| Cambio de rol o vínculo | El Administrador modifica `rol`, `activo` o `trabajadorId`. DUENO_UNIDAD y LECTOR requieren un trabajador vinculado. | El backend registra `USER_UPDATE`; falta un procedimiento de solicitud y aprobación. |
-| Baja | El Administrador puede desactivar la cuenta con `activo=false`; las sesiones de usuarios inactivos dejan de ser válidas al consultarlas. | No hay plazo institucional aprobado para ejecutar la baja; tampoco pantalla de revocación individual de passkeys. |
-| Revisión de accesos | Comparar cuentas, roles, vínculos y necesidad de acceso con el responsable designado; registrar correcciones. | No se encontró acta ni frecuencia acordada. No se presume revisión semestral. |
+| Login por contraseña | Contraseña; TOTP cuando MFA está confirmado | Antes de configurar MFA, las cuentas Administrador y RSI quedan limitadas a configuración de MFA, consulta propia y cierre de sesión. |
+| Gestión de seguridad, cumplimiento y KPI por Administrador o RSI | Sesión autenticada y MFA confirmado | Los guards comprueban sesión y MFA; no solicitan un código nuevo por cada modificación. |
+| Administración de usuarios | Sesión de Administrador con MFA confirmado | RSI no administra usuarios. La reautenticación específica para cambios sensibles es propuesta, no implementada. |
+| Registro de passkey | Sesión propia autenticada; MFA confirmado para Administrador y RSI | El registro del factor no requiere que el usuario pueda modificar datos de gestión; Lector puede administrar sus factores propios. |
+| Login con passkey | WebAuthn con verificación de usuario o WebAuthn más TOTP si no hay verificación | Mantiene las restricciones de MFA pendiente para roles privilegiados. |
+| Consulta ordinaria de Dueño de unidad o Lector | Sesión autenticada dentro de su ámbito | TOTP no es obligatorio para esos roles si no lo confirmaron. Lector no modifica registros de negocio. |
+| Consulta de auditoría | Administrador autenticado y con MFA confirmado | RSI, Dueño de unidad y Lector no acceden a la ruta actual de auditoría. |
 
-Los roles implementados son `ADMINISTRADOR`, `RSI`, `DUENO_UNIDAD` y `LECTOR`. `RolesGuard` restringe rutas marcadas por rol; `ReadOnlyGuard` impide cambios de negocio al LECTOR, con excepciones para su propia MFA y cierre de sesión; `UnitScopeGuard` limita a DUENO_UNIDAD y LECTOR según organización o unidad. La revisión de permisos efectivos debe abarcar también exportaciones y acceso horizontal a registros.
+## 2. Gestión de identidades provisión y desprovisión
 
-Desde el 01/10/2026, todas las rutas de búsqueda global y KPI requieren
-`ADMINISTRADOR` o `RSI`, incluidos configuración de indicadores y registro de
-mediciones. Dueño de unidad y Lector reciben HTTP 403. El frontend oculta el
-Dashboard para esos roles y abre Activos al ingresar o recargar. Esta
-restricción se aplica en el backend mediante `@Roles` en ambos controladores.
+Los plazos de operación siguientes son propuestas; la API no ejecuta un circuito automático de autorizaciones ni revisiones periódicas.
 
-## 3. Registro de accesos (acta)
+| Proceso | Procedimiento | Vencimiento o momento propuesto |
+|---|---|---|
+| Alta de usuario | Autoridad operativa autoriza necesidad y ámbito; Administrador crea cuenta nominal con correo único, rol y vínculo cuando corresponde. Por defecto se usa LECTOR; Dueño de unidad y Lector requieren trabajador asociado. Registrar la autorización fuera de la lista de cuentas. | Antes del primer acceso; no habilitar hasta confirmar vínculo y autorización. |
+| Modificación de rol o vínculo | Comprobar solicitud, necesidad y nuevo ámbito; Administrador actualiza. Registrar cambios en un acta y revisar sesiones ante reducción de permisos. El código registra `USER_UPDATE` sin valores previos/nuevos de rol. | Antes de ejercer la nueva función; cambio urgente ante privilegios incorrectos. |
+| Baja | Desactivar la cuenta con `activo=false`; las comprobaciones de sesión rechazan usuarios inactivos. Preservar trazabilidad y revocar factores/sesiones según procedimiento que se implemente. | Al cesar la autorización; de inmediato ante compromiso confirmado. |
+| Revisión de accesos | Revisar usuarios, roles, vínculos y necesidad con la autoridad operativa; reducir o desactivar lo innecesario y documentar resultado. | Inicial antes de publicación; mensual durante puesta en marcha y ante cambios relevantes. |
+| Recuperación de factor o cuenta | Verificar identidad mediante procedimiento autorizado y registrar aprobación y acciones. Implementar recuperación y revocación sin eludir MFA. | Antes de necesitar el flujo; PT12 propone validación para 24/10/2026. |
 
-La lista de usuarios del backend incluye ID, correo, rol, estado, vínculo con trabajador y fecha de alta. **No equivale a un acta de autorización ni a una revisión de accesos**. Para cada revisión debe conservarse, en un medio de acceso restringido:
+## 3. Registro de accesos actas
 
-| Campo del acta | Contenido requerido |
-|---|---|
-| Fecha y responsable | Quién revisó y cuándo. |
-| Cuenta y ámbito | ID de usuario, rol, trabajador y unidad u organización asociada. |
-| Justificación | Necesidad vigente de acceso y autoridad que la aprobó. |
-| Resultado | Mantener, reducir, desactivar o investigar; fecha de ejecución. |
+La siguiente matriz refleja los roles en código; **no es un acta firmada ni un inventario de cuentas reales**. Las altas, bajas y revisiones nominales se conservarán en un medio restringido, con cuenta, motivo, aprobador, fecha y resultado.
 
-No se incluyen cuentas reales ni datos personales de usuarios en este documento. El acta inicial y su periodicidad siguen pendientes.
+| Usuario o perfil | Rol | Recursos accesibles | Fecha alta | Fecha baja | Revisión |
+|---|---|---|---|---|---|
+| Cuentas administrativas de la plataforma | ADMINISTRADOR | Gestión completa, usuarios y auditoría; exige MFA confirmado | Por registrar por cuenta | Por registrar cuando corresponda | Pendiente de acta nominal y justificación de privilegios. |
+| Cuentas de gestión de seguridad | RSI | Gestión de seguridad y cumplimiento, búsqueda y KPI; sin administración de usuarios ni auditoría | Por registrar por cuenta | Por registrar cuando corresponda | Pendiente de autorización nominal. |
+| Cuentas con responsabilidad de unidad | DUENO_UNIDAD | Gestión limitada por organización/unidad del trabajador vinculado; sin búsqueda global, KPI, usuarios ni auditoría | Por registrar por cuenta | Por registrar cuando corresponda | Comprobar vínculo, rol y alcance efectivo. |
+| Cuentas de consulta | LECTOR | Lectura dentro de su ámbito; factores propios y logout; sin escritura de negocio, KPI, búsqueda global, usuarios ni auditoría | Por registrar por cuenta | Por registrar cuando corresponda | Confirmar necesidad de acceso y restricción de escritura. |
+
+La protección efectiva se aplica en backend con `AuthGuard`, `RolesGuard`, `ReadOnlyGuard`, `UnitScopeGuard` y filtros de servicios. Ocultar menús en frontend no sustituye autorización. Las pruebas deben abarcar identificadores directos, relaciones y exportaciones entre organizaciones y unidades.
 
 ## 4. Gestión de secretos y credenciales
 
-- Las contraseñas se almacenan como hashes Argon2id o bcrypt; los hashes scrypt anteriores se verifican por compatibilidad. No hay contraseña maestra del RSI.
-- `Passkey` conserva clave pública y contador; `PasskeyChallenge` conserva desafíos temporales. La clave privada permanece en el autenticador del usuario.
-- `mfaSecret` se guarda en la tabla `Usuario`. Antes de operar con datos reales debe definirse y demostrar su protección en reposo y acceso restringido; no se debe afirmar que ya está cifrado.
-- Los secretos de PostgreSQL y configuración local deben permanecer fuera de Git. Ningún log, acta o captura debe contener contraseñas, tokens, códigos TOTP o semillas.
-- El origen WebAuthn debe coincidir con `WEBAUTHN_ORIGIN`; para despliegue remoto se requiere HTTPS y dominio real. La configuración Nginx/TLS de producción aún no está demostrada.
-- Falta un flujo documentado para pérdida del segundo factor, recuperación de cuenta y revocación de passkeys. Esas acciones no deben resolverse omitiendo MFA.
+| Credencial | Protección actual | Medida pendiente o regla de operación |
+|---|---|---|
+| Contraseñas de usuarios | Hash Argon2id/bcrypt; compatibilidad scrypt | No compartir cuentas ni publicar hashes; registrar cambios y recuperación de cuenta cuando se implemente el flujo. |
+| Token de sesión | Hash SHA-256 en BD; valor Bearer en `localStorage` del navegador | Proteger frente a XSS, revisar cookies HttpOnly con controles CSRF y disponer de revocación; PT02. |
+| Semilla TOTP | Campo `mfaSecret` almacenado directamente en Usuario | Cifrar con clave custodiada fuera de BD y respaldos, restringir permisos y probar recuperación; PT03. No afirmar cifrado ya implementado. |
+| Passkey | Clave pública y contador en BD; clave privada en autenticador | Implementar revocación y recuperación; no solicitar PIN o biometría del usuario. |
+| Credenciales de PostgreSQL y configuración | Variables y archivos `.env` excluidos de Git | Custodiar copia cifrada independiente, restringir acceso, rotar ante exposición y no registrar valores en logs. |
+| Transporte y origen | HTTP local sobre loopback; `WEBAUTHN_ORIGIN` configurado para el origen de acceso | Para acceso remoto, HTTPS y origen exacto antes de habilitarlo; no publicar directamente BD o backend. |
 
 ## 5. Política de contraseñas por sistema
 
-| Cuenta o secreto | Regla comprobada | Cambio o revisión |
+| Sistema o tipo | Regla de generación | Longitud | Complejidad | Ciclo de cambio |
+|---|---|---|---|---|
+| Cuenta RSI con Argon2id | Validación de longitud al crearla; Argon2id predeterminado | Entre 12 y 1024 caracteres | No hay regex de mayúsculas/símbolos obligatoria; proponer frase robusta y exclusiva | No hay autoservicio o rotación periódica implementados; cambiar ante compromiso mediante flujo autorizado que se implemente. |
+| Cuenta RSI con bcrypt | Seleccionado por Administrador al alta; bcrypt con coste 12 | Entre 12 y 1024 caracteres y como máximo 72 bytes UTF-8 | No usar el límite de caracteres para omitir el límite de bytes | Misma condición de recuperación; no se declara cambio automático. |
+| Administrador inicial | Script `crear-admin.mjs`, Argon2id | Comprobar validación del script y suministrar secreto robusto fuera del repositorio | No reutilizar credencial entre entornos | Revisar custodia al preparar el entorno; rotar ante exposición. |
+| PostgreSQL | Variables del despliegue; no se demuestra una política de longitud en código | Política del operador por aprobar | Secreto aleatorio y distinto por entorno, como regla propuesta | Rotación controlada y validada ante exposición o cambio de custodia; no automatizada. |
+
+No existe contraseña maestra ni gestor de contraseñas dentro del RSI. No se incorpora a este documento ese caso del ejemplo.
+
+## 6. Registro de autenticaciones auditoría
+
+| Evento | Registro existente | Límite o acción pendiente |
 |---|---|---|
-| Cuenta del RSI | Entre 12 y 1024 caracteres al crearla; Argon2id predeterminado o bcrypt elegido por el Administrador. Con bcrypt se rechazan contraseñas que exceden 72 bytes UTF-8. | No se encontró cambio de contraseña por autoservicio ni rotación periódica implementada. |
-| Administrador inicial | Siempre Argon2id. | El secreto inicial debe suministrarse y custodiarse fuera del repositorio. |
-| Credencial de PostgreSQL | Configurada mediante variables de entorno; `.env.example` contiene solo valores de ejemplo. | No se encontró un procedimiento automatizado de rotación. |
+| Login con contraseña | `LOGIN` exitoso o fallido; correo o actor según resultado | Rechazos tempranos por formato/longitud no generan el mismo evento; completar cobertura. |
+| TOTP en login y alta confirmada | `MFA_FAILURE` y `MFA_ENABLED` | No se acredita evento específico para todos los rechazos de confirmación, inicio de alta o recuperación. |
+| Registro de passkey y login | `PASSKEY_REGISTER` exitoso; `PASSKEY_LOGIN` exitoso/fallido en el bloque cubierto | Desafíos inválidos/vencidos y otros rechazos tempranos necesitan instrumentación. |
+| Cambio de usuario y cierre de sesión | `USER_UPDATE` y `LOGOUT` | Incorporar cambios previos/nuevos de permisos sin secretos; alta de usuario sin evento explícito en el flujo revisado. |
+| Cambios de gestión y exportaciones | Interceptor común y `AuditEvent`; transacción compartida con operaciones cubiertas de gestión | No equivalen a auditar cada lectura, 401/403 ni operación directa en BD. |
+| Centralización y alertas | Pendientes | `07-Monitoreo-Logs-SIEM.md` propone reglas de fallos de login, MFA y cambios sensibles. No hay envío SIEM ni alertas automáticas acreditados. |
 
-No se exige una expresión regular de mayúsculas, símbolos y cambios cada 90/180 días: esas cifras pertenecen al ejemplo de la plantilla y no están implementadas ni acordadas. Ante una credencial expuesta debe cambiarse y revocarse su acceso.
-
-## 6. Registro de autenticaciones (auditoría)
-
-| Evento | Estado en el código |
-|---|---|
-| Inicio de sesión con contraseña exitoso o fallido | Se crea un evento `LOGIN` en `AuditEvent`. |
-| Código TOTP faltante o inválido; alta confirmada | Se registran `MFA_FAILURE` y `MFA_ENABLED`. |
-| Registro e inicio con passkey | Se registran `PASSKEY_REGISTER` y `PASSKEY_LOGIN`; el login con passkey fallido también se audita. |
-| Cambio de usuario y cierre de sesión | Se registran `USER_UPDATE` y `LOGOUT`. |
-
-Desde el 01/10/2026 también se registran los cambios de los módulos de gestión
-y las exportaciones mediante un interceptor común, con valores anteriores y
-nuevos y transacción compartida con la operación. La API permite al
-Administrador filtrar por entidad y usuario y consultar páginas de 50 eventos,
-incluidos los antiguos. Ver `docs/evidencias/auditoria-gestion.md`.
-No hay purga automática. La garantía operativa de retención de al menos un año,
-la correlación SIEM/Wazuh y las alertas requieren implementación o evidencia
-adicional antes de declararlas satisfechas.
-
-## Fuentes oficiales
-
-- [AGESIC — MCU 5.0, PR.AA y subcategorías](https://www.gub.uy/agencia-gobierno-electronico-sociedad-informacion-conocimiento/comunicacion/publicaciones/marco-ciberseguridad-50/marco-ciberseguridad/funcion-proteger-pr) y [guía CA.6](https://www.gub.uy/agencia-gobierno-electronico-sociedad-informacion-conocimiento/comunicacion/publicaciones/guia-implementacion-del-mcu-50/control-acceso/ca6-gestion-accesos).
-- [ISACA — objetivos APO13 y DSS05 de COBIT 2019](https://www.isaca.org/resources/news-and-trends/industry-news/2021/a-systematic-approach-to-implementing-a-governance-system-using-cobit-2019).
-- [ISO — ISO/IEC 27002:2022, controles de seguridad de la información](https://www.iso.org/standard/75652.html).
-- [BCU — Guía de estándares mínimos de gestión de seguridad de la información](https://www.bcu.gub.uy/Servicios-Financieros-SSF/Documents/guia%20emg%20seguridad%20de%20la%20informacion.pdf).
-- [IMPO — Ley 18.331, art. 10](https://www.impo.com.uy/bases/leyes/18331-2008/10).
-- [RFC Editor — RFC 6238, TOTP](https://www.rfc-editor.org/info/rfc6238/), [W3C — WebAuthn](https://www.w3.org/TR/webauthn-2/) y [Microsoft — WebAuthn y Windows Hello](https://learn.microsoft.com/en-us/windows/security/identity-protection/hello-for-business/webauthn-apis).
+La ruta de auditoría es exclusiva de Administrador, con filtros por entidad/usuario y páginas de 50 eventos. La retención anual de cambios requiere capacidad, copia independiente y recuperación probada. Las pruebas históricas de hashes, desafíos y permisos no sustituyen las pruebas reales de Windows Hello, llave física, recuperación y revisión de accesos.
