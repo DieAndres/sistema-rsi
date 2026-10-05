@@ -163,6 +163,34 @@ npm.cmd run test:e2e -- --runInBand
 Las credenciales y archivos `.env` son locales y no deben subirse al repositorio.
 ## Inicialización del primer administrador
 
+### Datos para una demostración
+
+Con PostgreSQL iniciado, las migraciones aplicadas y las dependencias instaladas,
+ejecutar desde `backend`:
+
+```powershell
+npm.cmd run seed
+```
+
+El script usa `DATABASE_URL` de `backend/.env` y también sirve cuando el backend
+está ejecutándose en Docker; se ejecuta desde la computadora anfitriona.
+Crea **Logística del Ceibo — Demo**, una empresa ficticia con 4 unidades,
+6 trabajadores, 5 activos, 3 procesos y 12 asignaciones RACI, 3 riesgos,
+3 vulnerabilidades, 3 incidentes con 8 acciones de historial, 2 políticas,
+2 procedimientos, 2 planes con 3 hitos y 3 registros de evidencia simulada.
+Los procesos se vinculan con sus activos y las unidades tienen responsables.
+
+La carga es transaccional: si falla, se revierte completa. No modifica registros
+previos ni crea usuarios de acceso. Si la organización de esta demo ya existe,
+no hace cambios; por lo tanto, repetir el comando conserva las ediciones hechas
+durante la presentación. Los trabajadores no son cuentas de inicio de sesión.
+Las evidencias son descripciones simuladas, sin archivos adjuntos; el historial
+de incidentes tampoco representa acciones de usuarios reales. La carga directa
+no genera eventos de auditoría de la API. Los registros alimentan los resúmenes
+del dashboard sin crear mediciones históricas artificiales.
+
+### Crear la cuenta inicial
+
 En una base nueva no se habilita un registro público. Crear el primer usuario
 administrador mediante el comando de bootstrap:
 

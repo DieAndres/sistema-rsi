@@ -15,6 +15,7 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "crear-admin": "node scripts/crear-admin.mjs",
+    "seed": "node scripts/seed-demo.mjs",
     "lint": "eslint .",
     "lint:oxlint": "oxlint --type-aware src/ test/",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
