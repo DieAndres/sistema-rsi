@@ -224,6 +224,26 @@ export class OrganizacionService {
   async actualizarPlan(id: string, datos: ActualizarPlanDto) {
     const plan = await this.prisma.plan.findUnique({ where: { id } });
     if (!plan) return null;
+    if (datos.nombre !== undefined && !datos.nombre?.trim()) {
+      throw new BadRequestException('El nombre es obligatorio');
+    }
+    if (datos.tipo !== undefined && !datos.tipo?.trim()) {
+      throw new BadRequestException('El tipo es obligatorio');
+    }
+    if (datos.riesgoId) {
+      const riesgo = await this.prisma.riesgo.findUnique({
+        where: { id: datos.riesgoId },
+        include: { activo: { include: { unidadOrganizativa: true } } },
+      });
+      if (
+        !riesgo ||
+        riesgo.activo.unidadOrganizativa.organizacionId !== plan.organizacionId
+      ) {
+        throw new BadRequestException(
+          'El riesgo asociado no pertenece a la organización',
+        );
+      }
+    }
     if (datos.responsableId) {
       await this.validarResponsableDeOrganizacion(
         datos.responsableId,
