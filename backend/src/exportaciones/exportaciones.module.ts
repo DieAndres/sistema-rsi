@@ -5,16 +5,20 @@ import { ExportacionesService } from './exportaciones.service';
 import { SoaService } from './soa.service';
 import { McuController } from './mcu.controller';
 import { McuService } from './mcu.service';
+import { BcuService } from './bcu.service';
+import { BcuController } from './bcu.controller';
 
 @Module({
   controllers: [
     ExportacionesController,
     McuController,
+    BcuController,
   ],
   providers: [
     ExportacionesService,
     SoaService,
     McuService,
+    BcuService,
     PrismaService,
   ],
 })

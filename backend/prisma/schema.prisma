@@ -33,6 +33,7 @@ model Organizacion {
   evaluacionesSoa   EvaluacionSoa[]
   brechasMcu        BrechaMcu[]
   evaluacionesMcu   EvaluacionMcu[]
+  evaluacionesBcu   EvaluacionBcu[]
 
   @@map("organizaciones")
 }
@@ -457,6 +458,19 @@ model EvaluacionMcu {
   @@map("evaluaciones_mcu")
 }
 
+model EvaluacionBcu {
+  id             String       @id @default(uuid())
+  organizacionId String
+  controlId      String
+  respuesta      String?
+  justificacion  String?
+  evidencia      String?
+  demostracion   String?
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id])
+
+  @@unique([organizacionId, controlId])
+  @@map("evaluaciones_bcu")
+}
 
 model AccionIncidente {
   id            String    @id @default(uuid())
