@@ -7,6 +7,24 @@
 .hito-linea button { font-size: 11px; padding: 4px 7px; }
 .exportaciones-grid { display: grid; gap: 12px; grid-template-columns: repeat(4, 1fr); }
 .exportaciones-grid button { min-height: 70px; }
+.documentos-iso { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.documentos-iso button { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 6px; padding: 18px; text-align: left; }
+.documentos-iso button small { color: #526771; font-weight: 400; }
+.soa-encabezado { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-bottom: 20px; border-bottom: 1px solid #dbe4e7; }
+.soa-marco { color: #176b68; font-size: 12px; font-weight: 700; letter-spacing: .08em; }
+.soa-encabezado h2 { margin: 8px 0; color: #0c3047; }
+.soa-encabezado p { margin: 0; color: #526771; }
+.soa-organizacion { background: #eef5f5; border: 1px solid #dbe4e7; border-radius: 20px; padding: 8px 14px; color: #174f50; overflow-wrap: anywhere; }
+.soa-vistas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 20px; }
+.soa-vistas button { display: flex; flex-direction: column; gap: 6px; border: 1px solid #dbe4e7; border-radius: 10px; background: #f8fafb; padding: 16px 20px; text-align: left; color: #263b45; }
+.soa-vistas button span { font-size: 13px; font-weight: 400; }
+.soa-vistas button[aria-pressed="true"] { border-color: #176b68; background: #eef7f6; color: #174f50; box-shadow: inset 0 3px 0 #176b68; }
+.soa-vistas button:focus-visible { outline: 2px solid #176b68; outline-offset: 3px; }
+@media (max-width: 760px) {
+  .soa-encabezado { align-items: flex-start; flex-direction: column; }
+  .soa-vistas, .exportaciones-grid.documentos-iso { grid-template-columns: 1fr; }
+}
+@media print { .soa-vistas, .soa-encabezado, #evaluacion-soa { display: none; } }
 
 .resultado-exportacion { background: #102333; border-radius: 8px; color: #dbe7e9; margin-top: 24px; max-height: 520px; overflow: auto; padding: 18px; white-space: pre-wrap; }
 .acciones-exportacion { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }

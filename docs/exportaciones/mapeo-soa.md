@@ -1,5 +1,9 @@
 # Mapeo previo del exportador SoA
 
+## Separación de informes ISO y MCU
+
+La salida `GET /api/v1/exportaciones/organizaciones/{id}/soa` contiene exclusivamente la SoA ISO y el resumen del plan de tratamiento (sección 4). El apartado MCU de la plantilla combinada se exporta por separado mediante `GET /api/v1/exportaciones/organizaciones/{id}/mcu`, desde la sección MCU 5.0 de la pantalla. Se conservan las brechas guardadas; no forman parte del documento ISO.
+
 ## Origen de los datos
 
 Los registros utilizados para las demostraciones corresponden a escenarios simulados del proyecto. Se usan para probar los flujos y generar los informes; no representan datos de una organización real.

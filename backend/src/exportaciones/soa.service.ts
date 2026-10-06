@@ -282,7 +282,7 @@ export class SoaService {
 
   async exportar(organizacionId: string): Promise<string> {
     const organizacion = await this.exigirOrganizacion(organizacionId);
-    const [evaluaciones, brechas, registros] = await Promise.all([
+    const [evaluaciones, registros] = await Promise.all([
       this.prisma.evaluacionSoa.findMany({
         where: { organizacionId },
         include: {
@@ -290,13 +290,11 @@ export class SoaService {
           plan: { include: { responsable: true, riesgo: true } },
         },
       }),
-      this.prisma.brechaMcu.findMany({ where: { organizacionId } }),
       this.contarRegistrosOrganizacion(organizacionId),
     ]);
     const porControl = new Map(
       evaluaciones.map((item) => [item.controlId, item]),
     );
-    const porFuncion = new Map(brechas.map((item) => [item.funcion, item]));
     const pendientes =
       CONTROLES_SOA.length -
       evaluaciones.filter((item) => item.aplica !== null && item.justificacion)
@@ -337,20 +335,13 @@ export class SoaService {
           : item?.estado || item?.plan?.nombre || 'Pendiente';
       return `| ${controlId} | ${celda(tema)} | ${aplica} | ${celda(item?.justificacion)} | ${celda(insumos)} | ${celda(evidencia)} | ${celda(estado)} |`;
     });
-    const filasBrecha = FUNCIONES.map((funcion) => {
-      const item = porFuncion.get(funcion);
-      return `| ${funcion} | ${celda(item?.perfilObjetivo)} | ${celda(item?.evidencia)} | ${celda(item?.madurez)} | ${celda(item?.acciones)} |`;
-    });
     const filasPlan = evaluaciones
       .filter((item) => item.plan)
       .map((item) => {
         const riesgo = item.plan!.riesgo;
-        const puntajeRiesgo = riesgo
-          ? `${riesgo.probabilidad} × ${riesgo.impacto} = ${riesgo.probabilidad * riesgo.impacto}/25`
-          : 'Sin riesgo asociado';
         const riesgoControl = `${item.controlId} / ${riesgo?.nombre || 'sin riesgo vinculado'}`;
         const accion = `${item.plan!.descripcion || item.plan!.nombre} (${item.plan!.estado})`;
-        return `| ${celda(item.plan!.id)} | ${celda(riesgoControl)} | ${celda(accion)} | ${celda(puntajeRiesgo)} | ${celda(item.plan!.responsable?.nombre)} | ${celda(item.plan!.fechaFin?.toISOString().slice(0, 10))} |`;
+        return `| ${celda(item.plan!.id)} | ${celda(riesgoControl)} | ${celda(accion)} | ${celda(item.plan!.responsable?.nombre)} | ${celda(item.plan!.fechaFin?.toISOString().slice(0, 10))} |`;
       });
 
     return [
@@ -370,9 +361,6 @@ export class SoaService {
       '“Sí” indica aplicabilidad preliminar al alcance; no significa que el control esté implementado.',
       '',
       '## 1. Organización y registros disponibles',
-      `Organización evaluada: ${celda(organizacion.nombre)}`,
-      `Alcance declarado para esta evaluación: ${celda(organizacion.alcanceSgsi || 'Pendiente de definir')}`,
-      'Los siguientes registros organizacionales son insumos para la revisión; su existencia no demuestra por sí sola que un control aplique o esté implementado.',
       '',
       '| Tipo de registro | Cantidad |',
       '|---|---:|',
@@ -390,15 +378,40 @@ export class SoaService {
       '|---|---|---|---|---|---|---|',
       ...filasControles,
       '',
-      '## 4. Análisis de brecha MCU 5.0',
-      `| Función MCU 5.0 | Perfil objetivo | ${esEscenarioSimulado ? 'Referencia simulada (no verificada)' : 'Evidencia que lo cumple'} | Madurez actual (0-4) | Acciones |`,
+      '## 4. Plan de tratamiento (resumen)',
+      '| ID | Riesgo/Control | Acción | Responsable | Fecha límite |',
       '|---|---|---|---|---|',
-      ...filasBrecha,
-      '',
-      '## 5. Plan de tratamiento (resumen)',
-      '| ID | Riesgo/Control | Acción | Puntaje de riesgo (P × I) | Responsable | Fecha límite |',
-      '|---|---|---|---|---|---|',
       ...filasPlan,
+      '',
+    ].join('\n');
+  }
+
+  async exportarMcu(organizacionId: string): Promise<string> {
+    const organizacion = await this.exigirOrganizacion(organizacionId);
+    const brechas = await this.prisma.brechaMcu.findMany({
+      where: { organizacionId },
+    });
+    const porFuncion = new Map(brechas.map((item) => [item.funcion, item]));
+    const filas = FUNCIONES.map((funcion) => {
+      const item = porFuncion.get(funcion);
+      return `| ${funcion} | ${celda(item?.perfilObjetivo)} | ${celda(item?.evidencia)} | ${celda(item?.madurez)} | ${celda(item?.acciones)} |`;
+    });
+    return [
+      '# Análisis de brecha MCU 5.0',
+      `Organización evaluada: ${celda(organizacion.nombre)}`,
+      `Fecha: ${new Date().toISOString().slice(0, 10)}`,
+      'Estado: en revisión; los campos vacíos están pendientes de evaluación.',
+      ...(/datos sintéticos para demostración/i.test(
+        organizacion.alcanceSgsi ?? '',
+      )
+        ? [
+            'Escenario simulado: las referencias son ficticias y no acreditan implementación.',
+          ]
+        : []),
+      '',
+      '| Función MCU 5.0 | Perfil objetivo | Evidencia o referencia | Madurez actual (0-4) | Acciones |',
+      '|---|---|---|---|---|',
+      ...filas,
       '',
     ].join('\n');
   }

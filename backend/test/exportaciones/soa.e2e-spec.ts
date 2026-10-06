@@ -43,7 +43,8 @@ describe('SoA (e2e)', () => {
     jest.clearAllMocks();
     prisma.organizacion.findUnique.mockResolvedValue({
       nombre: 'Organización demo',
-      alcanceSgsi: 'Escenario simulado de demostración; datos sintéticos para demostración.',
+      alcanceSgsi:
+        'Escenario simulado de demostración; datos sintéticos para demostración.',
     });
     prisma.evaluacionSoa.findMany.mockResolvedValue([]);
     prisma.brechaMcu.findMany.mockResolvedValue([]);
@@ -93,7 +94,7 @@ describe('SoA (e2e)', () => {
     );
   });
 
-  it('incluye una evaluación y la brecha MCU sin ocultar los controles pendientes', async () => {
+  it('separa la evaluación ISO de las brechas MCU', async () => {
     prisma.evaluacionSoa.findMany.mockResolvedValue([
       {
         controlId: 'A.5.9',
@@ -123,9 +124,16 @@ describe('SoA (e2e)', () => {
     expect(respuesta.text).toContain(
       'Controles con aplicabilidad pendiente: 92',
     );
-    expect(respuesta.text).toContain(
+    expect(respuesta.text).not.toContain('MCU');
+    expect(respuesta.text).toContain('## 4. Plan de tratamiento');
+    expect(prisma.brechaMcu.findMany).not.toHaveBeenCalled();
+    const mcu = await request(app.getHttpServer())
+      .get('/api/v1/exportaciones/organizaciones/org-1/mcu')
+      .expect(200);
+    expect(mcu.text).toContain(
       '| Identificar | Básico | Inventario | 1 | Completar cobertura |',
     );
+    expect(mcu.text).not.toContain('A.5.9');
   });
 
   it('no exige evidencia para controles no aplicables', async () => {
