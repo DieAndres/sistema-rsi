@@ -16,6 +16,14 @@ El guardado utiliza los permisos existentes para RSI y administrador y registra 
 
 Detalle de campos y relaciones: [Mapeo COBIT](./mapeo-cobit.md).
 
+## URCDP (Ley 18.331)
+
+Se agregó en Exportaciones la sección **URCDP (Ley 18.331)** con el botón **Notificación de brechas**, que permanece deshabilitado.
+
+La implementación actual es únicamente visual: no hay formulario, persistencia, generación de documentos ni envío a la URCDP. La sección 3 de `plantilla/isaca/12-notificacion-incidentes.md` contiene la plantilla del curso que se propuso como base para una implementación futura; su uso todavía no está implementado.
+
+Esta sección tampoco implementa el registro de bases de datos personales ni el informe de medidas de seguridad solicitados en la consigna.
+
 ## Funcionalidades implementadas de SoA y planes
 
 ### Evaluación SoA integrada en Exportaciones

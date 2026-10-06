@@ -315,6 +315,17 @@ export function ExportacionesPage() {
         </section>
         <section
           className="panel-estructura"
+          aria-labelledby="exportaciones-urcdp"
+        >
+          <h2 id="exportaciones-urcdp">URCDP (Ley 18.331)</h2>
+          <div className="exportaciones-grid documentos-iso">
+            <button type="button" disabled>
+              Notificación de brechas
+            </button>
+          </div>
+        </section>
+        <section
+          className="panel-estructura"
           aria-label="Vista previa del informe"
         >
           {vistaSoa && (
