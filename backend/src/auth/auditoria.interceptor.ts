@@ -30,6 +30,7 @@ export const ENTIDADES_AUDITABLES = {
   BRECHA_MCU: 'brechaMcu',
   EVALUACION_MCU: 'evaluacionMcu',
   EVALUACION_BCU: 'evaluacionBcu',
+  EVALUACION_COBIT: 'evaluacionCobit',
 } as const;
 
 const recursos: Record<string, keyof typeof ENTIDADES_AUDITABLES> = {
@@ -52,6 +53,7 @@ const recursos: Record<string, keyof typeof ENTIDADES_AUDITABLES> = {
   brechas: 'BRECHA_MCU',
   'mcu-controles': 'EVALUACION_MCU',
   'bcu-controles': 'EVALUACION_BCU',
+  'cobit-procesos': 'EVALUACION_COBIT',
 };
 
 // Solo campos escalares persistidos: excluye relaciones, respuestas calculadas y cuerpos enviados.
@@ -111,6 +113,7 @@ export class AuditoriaInterceptor implements NestInterceptor {
         'mcu',
         'mcu-funciones',
         'bcu-gsi',
+        'cobit',
         'inventario-activos',
         'politica-seguridad',
       ].includes(partes.at(-1)!);
@@ -146,7 +149,15 @@ export class AuditoriaInterceptor implements NestInterceptor {
             let anterior: unknown = null;
             if (!exportacion && accion !== 'CREATE') {
               const where =
-                entidad === 'EVALUACION_SOA' ||
+                entidad === 'EVALUACION_COBIT'
+                  ? {
+                      organizacionId_procesoId_controlId: {
+                        organizacionId: request.params.id,
+                        procesoId: request.body?.procesoId,
+                        controlId: request.params.controlId,
+                      },
+                    }
+                  : entidad === 'EVALUACION_SOA' ||
                       entidad === 'EVALUACION_MCU' ||
                       entidad === 'EVALUACION_BCU'
                     ? {

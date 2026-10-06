@@ -1,3 +1,5 @@
+import { CobitService } from './cobit.service';
+import { CobitController } from './cobit.controller';
 import { Module } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ExportacionesController } from './exportaciones.controller';
@@ -13,12 +15,14 @@ import { BcuController } from './bcu.controller';
     ExportacionesController,
     McuController,
     BcuController,
+    CobitController,
   ],
   providers: [
     ExportacionesService,
     SoaService,
     McuService,
     BcuService,
+    CobitService,
     PrismaService,
   ],
 })

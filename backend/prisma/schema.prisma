@@ -34,6 +34,7 @@ model Organizacion {
   brechasMcu        BrechaMcu[]
   evaluacionesMcu   EvaluacionMcu[]
   evaluacionesBcu   EvaluacionBcu[]
+  evaluacionesCobit EvaluacionCobit[]
 
   @@map("organizaciones")
 }
@@ -267,6 +268,7 @@ model Proceso {
   version           String            @default("1.0")
   responsableId     String?
   fechaRevision     DateTime?
+  evaluacionesCobit EvaluacionCobit[]
   asignacionesRaci  AsignacionRaci[]
   responsable       Trabajador?       @relation("ResponsableProceso", fields: [responsableId], references: [id])
   organizacion      Organizacion?     @relation(fields: [organizacionId], references: [id])
@@ -486,3 +488,18 @@ model AccionIncidente {
   @@map("acciones_incidente")
 }
 
+model EvaluacionCobit {
+  id             String       @id @default(uuid())
+  organizacionId String
+  procesoId      String
+  controlId      String
+  evaluacion     String?
+  evidencia      String?
+  indicador      String?
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id])
+  proceso        Proceso      @relation(fields: [procesoId], references: [id])
+
+  @@unique([organizacionId, procesoId, controlId])
+  @@index([procesoId])
+  @@map("evaluaciones_cobit")
+}
