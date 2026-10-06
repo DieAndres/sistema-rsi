@@ -18,6 +18,9 @@ export async function listarOrganizaciones(signal: AbortSignal) {
 export async function apiRequest<T>(ruta: string, init: RequestInit): Promise<T> {
   const respuesta = await fetch(ruta, {
     ...init,
+    signal: init.signal
+      ? AbortSignal.any([init.signal, AbortSignal.timeout(20000)])
+      : AbortSignal.timeout(20000),
     headers: { 'Content-Type': 'application/json', ...(obtenerToken() ? { Authorization: `Bearer ${obtenerToken()}` } : {}), ...init.headers },
   })
 
