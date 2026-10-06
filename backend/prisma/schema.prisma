@@ -21,17 +21,18 @@ enum TipoResponsabilidadRaci {
 }
 
 model Organizacion {
-  id              String               @id @default(uuid())
-  nombre          String
-  alcanceSgsi      String?
-  unidades        UnidadOrganizativa[]
-  politicas       Politica[]
-  evidencias      Evidencia[]
-  planes          Plan[]
-  procedimientos  Procedimiento[]
-  procesos        Proceso[]
-  evaluacionesSoa EvaluacionSoa[]
-  brechasMcu      BrechaMcu[]
+  id                String               @id @default(uuid())
+  nombre            String
+  alcanceSgsi       String?
+  unidades          UnidadOrganizativa[]
+  politicas         Politica[]
+  evidencias        Evidencia[]
+  planes            Plan[]
+  procedimientos    Procedimiento[]
+  procesos          Proceso[]
+  evaluacionesSoa   EvaluacionSoa[]
+  brechasMcu        BrechaMcu[]
+  evaluacionesMcu   EvaluacionMcu[]
 
   @@map("organizaciones")
 }
@@ -84,20 +85,20 @@ model Trabajador {
 }
 
 model Usuario {
-  id            String       @id @default(uuid())
-  correo        String       @unique
-  passwordHash  String
-  rol           String       @default("LECTOR")
-  activo        Boolean      @default(true)
-  mfaSecret     String?
-  mfaConfirmado Boolean      @default(false)
-  trabajadorId  String?      @unique
-  creadoEn      DateTime     @default(now())
-  actualizadoEn DateTime     @updatedAt
-  trabajador    Trabajador?  @relation(fields: [trabajadorId], references: [id])
-  sesiones      Sesion[]
-  auditorias    AuditEvent[]
-  passkeys       Passkey[]
+  id                String             @id @default(uuid())
+  correo            String             @unique
+  passwordHash      String
+  rol               String             @default("LECTOR")
+  activo            Boolean            @default(true)
+  mfaSecret         String?
+  mfaConfirmado     Boolean            @default(false)
+  trabajadorId      String?            @unique
+  creadoEn          DateTime           @default(now())
+  actualizadoEn     DateTime           @updatedAt
+  trabajador        Trabajador?        @relation(fields: [trabajadorId], references: [id])
+  sesiones          Sesion[]
+  auditorias        AuditEvent[]
+  passkeys          Passkey[]
   passkeyChallenges PasskeyChallenge[]
 }
 
@@ -238,16 +239,16 @@ model Riesgo {
 }
 
 model Incidente {
-  id                  String      @id @default(uuid())
+  id                  String            @id @default(uuid())
   activoId            String
   titulo              String
   descripcion         String?
   severidad           String
-  estado              String      @default("ABIERTO")
+  estado              String            @default("ABIERTO")
   leccionesAprendidas String?
   responsableId       String?
-  activo              Activo      @relation(fields: [activoId], references: [id])
-  responsable         Trabajador? @relation("ResponsableIncidente", fields: [responsableId], references: [id])
+  activo              Activo            @relation(fields: [activoId], references: [id])
+  responsable         Trabajador?       @relation("ResponsableIncidente", fields: [responsableId], references: [id])
   evidencias          Evidencia[]
   historial           AccionIncidente[]
 
@@ -257,18 +258,18 @@ model Incidente {
 }
 
 model Proceso {
-  id               String           @id @default(uuid())
-  organizacionId   String?
-  nombre           String
-  descripcion      String?
-  estado           String           @default("ACTIVO")
-  version          String           @default("1.0")
-  responsableId    String?
-  fechaRevision    DateTime?
-  asignacionesRaci AsignacionRaci[]
-  responsable      Trabajador?      @relation("ResponsableProceso", fields: [responsableId], references: [id])
-  organizacion     Organizacion?    @relation(fields: [organizacionId], references: [id])
-  activos          Activo[]
+  id                String            @id @default(uuid())
+  organizacionId    String?
+  nombre            String
+  descripcion       String?
+  estado            String            @default("ACTIVO")
+  version           String            @default("1.0")
+  responsableId     String?
+  fechaRevision     DateTime?
+  asignacionesRaci  AsignacionRaci[]
+  responsable       Trabajador?       @relation("ResponsableProceso", fields: [responsableId], references: [id])
+  organizacion      Organizacion?     @relation(fields: [organizacionId], references: [id])
+  activos           Activo[]
 
   @@index([organizacionId])
   @@map("procesos")
@@ -442,15 +443,32 @@ model BrechaMcu {
   @@map("brechas_mcu")
 }
 
-model AccionIncidente {
- id String @id @default(uuid())
- incidenteId String
- estado String
- descripcion String
- usuarioId String?
- usuarioCorreo String?
- fecha DateTime @default(now())
- incidente Incidente @relation(fields: [incidenteId], references: [id], onDelete: Cascade)
- @@index([incidenteId, fecha])
- @@map("acciones_incidente")
+model EvaluacionMcu {
+  id             String       @id @default(uuid())
+  organizacionId String
+  controlId      String
+  respuesta      String?
+  justificacion  String?
+  evidencia      String?
+  demostracion   String?
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id])
+
+  @@unique([organizacionId, controlId])
+  @@map("evaluaciones_mcu")
 }
+
+
+model AccionIncidente {
+  id            String    @id @default(uuid())
+  incidenteId   String
+  estado        String
+  descripcion   String
+  usuarioId     String?
+  usuarioCorreo String?
+  fecha         DateTime  @default(now())
+  incidente     Incidente @relation(fields: [incidenteId], references: [id], onDelete: Cascade)
+
+  @@index([incidenteId, fecha])
+  @@map("acciones_incidente")
+}
+

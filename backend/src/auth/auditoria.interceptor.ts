@@ -28,6 +28,7 @@ export const ENTIDADES_AUDITABLES = {
   MEDICION_KPI: 'medicionKpi',
   EVALUACION_SOA: 'evaluacionSoa',
   BRECHA_MCU: 'brechaMcu',
+  EVALUACION_MCU: 'evaluacionMcu',
 } as const;
 
 const recursos: Record<string, keyof typeof ENTIDADES_AUDITABLES> = {
@@ -48,6 +49,7 @@ const recursos: Record<string, keyof typeof ENTIDADES_AUDITABLES> = {
   mediciones: 'MEDICION_KPI',
   controles: 'EVALUACION_SOA',
   brechas: 'BRECHA_MCU',
+  'mcu-controles': 'EVALUACION_MCU',
 };
 
 // Solo campos escalares persistidos: excluye relaciones, respuestas calculadas y cuerpos enviados.
@@ -102,7 +104,13 @@ export class AuditoriaInterceptor implements NestInterceptor {
     const exportacion =
       modulo === 'exportaciones' &&
       request.method === 'GET' &&
-      ['soa', 'inventario-activos'].includes(partes.at(-1)!);
+      [
+        'soa',
+        'mcu',
+        'mcu-funciones',
+        'inventario-activos',
+        'politica-seguridad',
+      ].includes(partes.at(-1)!);
     if (
       !exportacion &&
       !['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method)
@@ -135,21 +143,22 @@ export class AuditoriaInterceptor implements NestInterceptor {
             let anterior: unknown = null;
             if (!exportacion && accion !== 'CREATE') {
               const where =
-                entidad === 'EVALUACION_SOA'
-                  ? {
-                      organizacionId_controlId: {
-                        organizacionId: request.params.id,
-                        controlId: request.params.controlId,
-                      },
-                    }
-                  : entidad === 'BRECHA_MCU'
+                entidad === 'EVALUACION_SOA' ||
+                      entidad === 'EVALUACION_MCU'
                     ? {
-                        organizacionId_funcion: {
+                        organizacionId_controlId: {
                           organizacionId: request.params.id,
-                          funcion: request.params.funcion,
+                          controlId: request.params.controlId,
                         },
                       }
-                    : { id: request.params.id };
+                    : entidad === 'BRECHA_MCU'
+                      ? {
+                          organizacionId_funcion: {
+                            organizacionId: request.params.id,
+                            funcion: request.params.funcion,
+                          },
+                        }
+                      : { id: request.params.id };
               anterior = await modelo.findUnique({
                 where,
                 ...(entidad === 'ACTIVO' && { include: { procesos: true } }),
