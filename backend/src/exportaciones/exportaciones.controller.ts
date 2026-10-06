@@ -33,6 +33,20 @@ export class ExportacionesController {
     return contenido;
   }
 
+  @Get('organizaciones/:id/politica-seguridad')
+  async politicaSeguridad(
+    @Param('id') id: string,
+    @Req() request: Request,
+    @Res({ passthrough: true }) respuesta: Response,
+  ) {
+    this.validarAlcance(id, request);
+    const contenido = await this.exportaciones.politicaSeguridad(id);
+    respuesta
+      .type('text/markdown; charset=utf-8')
+      .attachment('politica-seguridad-borrador.md');
+    return contenido;
+  }
+
   @Get('organizaciones/:id/soa/controles')
   listarControles(@Param('id') id: string, @Req() request: Request) {
     this.validarAlcance(id, request);
@@ -72,6 +86,20 @@ export class ExportacionesController {
     respuesta
       .type('text/markdown; charset=utf-8')
       .attachment('soa-borrador.md');
+    return contenido;
+  }
+
+  @Get('organizaciones/:id/mcu')
+  async exportarMcu(
+    @Param('id') id: string,
+    @Req() request: Request,
+    @Res({ passthrough: true }) respuesta: Response,
+  ) {
+    this.validarAlcance(id, request);
+    const contenido = await this.soa.exportarMcu(id);
+    respuesta
+      .type('text/markdown; charset=utf-8')
+      .attachment('brechas-mcu-borrador.md');
     return contenido;
   }
 
