@@ -5,8 +5,8 @@
 | Campo | Valor |
 |---|---|
 | Código | ARQ-C4-02 |
-| Versión | 1.9 |
-| Fecha | 30/09/2026 |
+| Versión | 1.10 |
+| Fecha | 07/10/2026 |
 | Metodología | C4 |
 | Estado | En construcción |
 
@@ -14,8 +14,8 @@
 
 El Sistema RSI está construido como una aplicación web con una API backend y
 PostgreSQL. La autenticación usa usuarios y sesiones persistidas. La
-autorización por roles, la auditoría básica, TOTP y el flujo WebAuthn están
-implementados; falta probar Windows Hello en un dispositivo real.
+autorización por roles, la auditoría básica y TOTP están
+implementados.
 
 ```mermaid
 flowchart LR
@@ -51,21 +51,18 @@ Este nivel muestra las partes principales que forman la aplicación web y cómo 
 ```mermaid
 flowchart LR
     Usuario[Usuario]
-    Autenticador[Windows Hello o llave FIDO<br/>fuera del Sistema RSI]
 
     subgraph Sistema[ Sistema de Gestión Integrada para el RSI ]
         Frontend[Frontend web<br/>React + Vite + TypeScript]
         Backend[Backend API<br/>NestJS + TypeScript]
-        Identidad[Identidad<br/>Usuarios, sesiones, passkeys y desafíos]
+        Identidad[Identidad<br/>Usuarios y sesiones]
         BD[(Base de datos<br/>PostgreSQL + Prisma)]
     end
 
     Usuario -->|Navegador| Frontend
-    Frontend -->|API WebAuthn del navegador| Autenticador
-    Autenticador -->|Respuesta firmada| Frontend
     Frontend -->|JSON / REST /api/v1| Backend
     Backend -->|Autenticación| Identidad
-    Identidad -->|Usuarios, sesiones y credenciales| BD
+    Identidad -->|Usuarios y sesiones| BD
     Backend -->|Prisma / PostgreSQL| BD
 
     classDef app fill:#dbeafe,color:#111827,stroke:#60a5fa
@@ -84,30 +81,28 @@ flowchart LR
 4. Prisma consulta o modifica los datos en PostgreSQL.
 5. La API devuelve JSON al frontend.
 
-En WebAuthn, el navegador solicita una respuesta al autenticador y la envía a
-la API. El backend verifica la firma y el desafío guardado en PostgreSQL; nunca
-recibe el PIN de Windows Hello. Ver `docs/09-gestion-accesos.md`.
+La autenticación utiliza contraseña y TOTP. Ver docs/09-gestion-accesos.md.
 
 ## C4 — Diagrama de componentes
 
 El backend se organiza como un monolito modular. Cada módulo concentra sus
 controladores, servicios y DTOs, y utiliza Prisma para acceder a PostgreSQL.
 
-| Componente | Responsabilidad | Estado |
-|---|---|---|
-| Organización | Organizaciones, unidades, trabajadores, procesos y RACI | Implementado |
-| Seguridad | Activos, riesgos, vulnerabilidades e incidentes | Implementado |
-| Cumplimiento | Políticas, procedimientos, planes y evidencias | Implementado |
-| Búsqueda | Búsqueda global y filtros por unidad, estado y severidad | Implementado en API |
-| KPI | Resumen, indicadores configurables, metas y mediciones históricas | Implementado; fórmulas disponibles mediante catálogo |
-| Exportaciones | Inventario de activos y SoA ISO | Implementado en API; otras exportaciones pendientes |
-| Prisma | Persistencia y migraciones de PostgreSQL | Implementado |
-| Docker Compose | Ejecución local de PostgreSQL y volumen persistente | Implementado; sin respaldo automático |
-| Documentación de seguridad | Política, procedimientos de incidentes y vulnerabilidades, plan de continuidad | Redactados; requieren validación/aprobación operativa |
-| Autenticación | Registro, login, hashes Argon2id/bcrypt con compatibilidad scrypt, sesiones expirables, TOTP y WebAuthn | Implementado en código; prueba real con Windows Hello pendiente |
-| Autorización y auditoría | Roles, permisos, alcance por unidad y trazabilidad | Implementado |
-| Frontend y dashboard | Consulta del organigrama implementada; otras pantallas y dashboard KPI | Parcial |
-| SIEM | Recepción y análisis centralizado de logs | Pendiente |
+| Componente | Responsabilidad |
+|---|---|
+| Organización | Organizaciones, unidades, trabajadores, procesos y RACI |
+| Seguridad | Activos, riesgos, vulnerabilidades e incidentes |
+| Cumplimiento | Políticas, procedimientos, planes y evidencias |
+| Búsqueda | Búsqueda global y filtros por unidad, estado y severidad |
+| KPI | Resumen, indicadores configurables, metas y mediciones históricas |
+| Exportaciones | Inventario de activos, política de seguridad, SoA ISO, MCU 5.0, BCU y COBIT |
+| Prisma | Persistencia y migraciones de PostgreSQL |
+| Docker Compose | Ejecución local de PostgreSQL y volumen persistente |
+| Documentación de seguridad | Política, procedimientos de incidentes y vulnerabilidades, plan de continuidad |
+| Autenticación | Registro, login, hashes Argon2id/bcrypt con compatibilidad scrypt, sesiones expirables, TOTP |
+| Autorización y auditoría | Roles, permisos, alcance por unidad y trazabilidad |
+| Frontend y dashboard | Gestión de organización, seguridad y cumplimiento, exportaciones y dashboard KPI |
+| SIEM | Recepción y análisis centralizado de logs |
 
 ## C4 — Diagrama de código
 
@@ -122,13 +117,15 @@ Los archivos principales de los módulos implementados son:
 | KPI | `backend/src/kpi/kpi.controller.ts`, `kpi.service.ts` |
 | Exportaciones | `backend/src/exportaciones/exportaciones.controller.ts`, `exportaciones.service.ts`, `soa.service.ts` |
 | Persistencia | `backend/prisma/schema.prisma`, `backend/src/prisma/prisma.service.ts` |
-| Identidad | `backend/src/auth/auth.controller.ts`, `auth.service.ts`, `passkey.service.ts`, `password.ts`, `auth.module.ts` |
+| Identidad | `backend/src/auth/auth.controller.ts`, `auth.service.ts`, `password.ts`, `auth.module.ts` |
 | Frontend | `frontend/src/app/App.tsx`, `frontend/src/features/organizacion/` |
 
 Los módulos de seguridad incluyen activos, riesgos, vulnerabilidades e
 incidentes. El módulo de cumplimiento incluye políticas, procedimientos,
 planes y evidencias. Los documentos asociados describen procesos previstos y
 no implican que los controles técnicos correspondientes ya estén desplegados.
+
+Las tablas Passkey y PasskeyChallenge se conservan como estructura histórica en la BD; no forman parte del acceso actual.
 
 ## Modelo entidad-relación
 
@@ -404,9 +401,12 @@ erDiagram
 - Backend NestJS con API REST versionada en `/api/v1`.
 - PostgreSQL con Prisma y migraciones.
 - Módulos de organización, seguridad y cumplimiento.
-- Frontend React con consulta del organigrama y sus unidades.
-- Exportación Markdown del inventario de activos y del SoA; la API permite
-  registrar evaluaciones SoA y brechas MCU.
+- Frontend React con pantallas de organización, seguridad y cumplimiento,
+  exportaciones, gestión de usuarios, MFA y consulta de auditoría.
+- Exportación Markdown del inventario de activos, política de seguridad, SoA,
+  MCU 5.0, BCU y COBIT, con formularios para registrar evaluaciones.
+- Dashboard visual de KPI con resumen de seguridad, configuración de
+  indicadores, metas y mediciones históricas.
 - KPI: resumen existente, catálogo de fórmulas, configuración de indicadores,
   metas y captura/consulta de mediciones históricas.
 - Ejecución local de PostgreSQL mediante Docker Compose.
@@ -430,7 +430,13 @@ alcance del usuario autenticado.
 
 ### Planificado o pendiente
 
-- Pantallas frontend para los módulos restantes y dashboard visual de KPI.
-- Exportadores para MCU 5.0, BCU, URCDP y COBIT.
+- Exportaciones URCDP: notificación de brechas, registro de bases de datos
+  personales e informe de medidas de seguridad. La sección visual existe,
+  pero todavía no genera documentos.
+
 - Integración con Wazuh.
 - Respaldos automáticos, copia externa y prueba documentada de restauración.
+
+### Mejora futura
+
+- Incorporación y validación de Windows Hello, fuera del alcance de esta entrega.

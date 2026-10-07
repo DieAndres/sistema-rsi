@@ -119,7 +119,7 @@ Se ejecutaron `backend/src/auth/password.spec.ts` y `passkey.service.spec.ts`:
 2 suites y 2 pruebas aprobadas. Cubren Argon2id, bcrypt, compatibilidad con
 `scrypt` y rechazo de un desafío WebAuthn vencido o reutilizado. También
 compilaron backend y frontend. Estas pruebas no sustituyen el registro y login
-manual con Windows Hello, que sigue pendiente de evidencia.
+manual con autenticadores, que sigue pendiente de evidencia.
 
 ## Permisos de búsqueda y KPI — 01/10/2026
 
@@ -157,3 +157,9 @@ mediciones anteriores. No hay captura automática programada.
 Comando: `npm.cmd run test:e2e -- --runInBand incidentes-ciclo.e2e-spec.ts` desde backend. Resultado: 1 suite y 1 prueba aprobadas con PostgreSQL y autenticación real. Recorre ABIERTO → CONTENIDO → ERRADICADO → RECUPERADO → CERRADO, registra varias acciones en una etapa y verifica autor, fecha y seis AuditEvent. Rechaza estado desconocido, saltos, retrocesos, avance sin acción y cierre sin lecciones; tampoco permite eliminar las lecciones de un incidente cerrado. El autor enviado por el cliente no sustituye al autenticado.
 
 Backend y frontend compilaron; ESLint de los archivos modificados pasó. Se comprobó visualmente la separación Editar/Seguimiento, las opciones disponibles, el recorrido resaltado y el historial. Esa comprobación no constituye una prueba automatizada de interacción con la web ni un simulacro operativo. [Detalle y límites](incidentes-ciclo.md).
+
+## Retiro de passkeys/WebAuthn — 07/10/2026
+
+Se retiraron el servicio de passkeys, sus rutas, proveedor, prueba unitaria y las dependencias SimpleWebAuthn del backend y frontend. El acceso actual utiliza contraseña y TOTP. Las tablas históricas Passkey y PasskeyChallenge se conservan sin uso en la autenticación; no se borraron datos ni se modificaron migraciones existentes.
+
+Verificación: compilación de frontend y backend aprobada; 9 suites unitarias con 13 pruebas aprobadas y 2 suites HTTP con 11 pruebas aprobadas. Las pruebas HTTP comprueban aceptación de contraseña con TOTP válido, rechazo de código ausente o inválido y respuesta 404 para las cuatro rutas de passkeys retiradas. El lint de los archivos de autenticación modificados pasó.

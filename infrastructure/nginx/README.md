@@ -24,7 +24,7 @@ Los archivos `certs/server.crt` y `certs/server.key` se montan de solo lectura y
 
 | Variable | Predeterminado | Uso |
 |---|---|---|
-| `PUBLIC_ORIGIN` | `https://localhost:8443` | Origen exacto, redirección HTTP y `WEBAUTHN_ORIGIN`. |
+| `PUBLIC_ORIGIN` | `https://localhost:8443` | Origen público y redirección HTTP; configurar también `SESSION_ALLOWED_ORIGINS`. |
 | `FRONTEND_PORT` | `8080` | Puerto HTTP para redirección. |
 | `FRONTEND_HTTPS_PORT` | `8443` | Puerto HTTPS del anfitrión; Nginx escucha 443 internamente. |
 | `FRONTEND_BIND_ADDRESS` | `127.0.0.1` | Interfaz local por defecto. |
@@ -36,4 +36,4 @@ Si cambia el puerto HTTPS, actualizar también `PUBLIC_ORIGIN`. Para el verifica
 
 Para publicar, utilizar un certificado válido para el dominio y su cadena en `server.crt`, clave en `server.key` y configurar renovación. Ajustar `PUBLIC_ORIGIN`, los puertos 443/80 y la interfaz de publicación. El certificado de localhost es para laboratorio; no acredita confianza pública.
 
-Vite sigue siendo un entorno HTTP de desarrollo separado. Para demostrar RNF-04 utilizar Docker HTTPS. Al cambiar de origen es necesario iniciar sesión nuevamente; probar las passkeys bajo el origen HTTPS configurado. El tráfico Nginx → backend utiliza HTTP dentro de la red privada Docker.
+Vite sigue siendo un entorno HTTP de desarrollo separado. Para demostrar RNF-04 utilizar Docker HTTPS. Al cambiar de origen es necesario iniciar sesión nuevamente; actualizar `SESSION_ALLOWED_ORIGINS` si cambia el origen. El tráfico Nginx → backend utiliza HTTP dentro de la red privada Docker.

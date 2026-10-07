@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { obtenerToken, obtenerUsuarioActual } from '../../../shared/api/apiGet'
+import { apiFetch, obtenerUsuarioActual } from '../../../shared/api/apiGet'
 
 export function DatosPanel({ organizacionId }: { organizacionId: string }) {
   const [mensaje, setMensaje] = useState('')
@@ -7,8 +7,8 @@ export function DatosPanel({ organizacionId }: { organizacionId: string }) {
   const rol = obtenerUsuarioActual()?.rol
   if (!['ADMINISTRADOR', 'RSI'].includes(rol ?? '')) return null
   async function pedir(ruta: string, opciones: RequestInit = {}) {
-    const respuesta = await fetch(`/api/v1/datos/organizaciones/${organizacionId}/${ruta}`, {
-      ...opciones, headers: { Authorization: `Bearer ${obtenerToken() ?? ''}`, 'Content-Type': 'application/json' },
+    const respuesta = await apiFetch(`/api/v1/datos/organizaciones/${organizacionId}/${ruta}`, {
+      ...opciones, headers: { 'Content-Type': 'application/json' },
     })
     if (!respuesta.ok) {
       const error = await respuesta.json().catch(() => null) as { message?: string } | null

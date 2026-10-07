@@ -1,4 +1,4 @@
-import { apiGet, obtenerToken } from '../../../shared/api/apiGet'
+import { apiGet, apiFetch } from '../../../shared/api/apiGet'
 import { obtenerUsuarioActual } from '../../../shared/api/apiGet'
 import type { Organizacion, Trabajador, Unidad } from '../types/organizacion'
 
@@ -16,12 +16,12 @@ export async function listarOrganizaciones(signal: AbortSignal) {
 }
 
 export async function apiRequest<T>(ruta: string, init: RequestInit): Promise<T> {
-  const respuesta = await fetch(ruta, {
+  const respuesta = await apiFetch(ruta, {
     ...init,
     signal: init.signal
       ? AbortSignal.any([init.signal, AbortSignal.timeout(20000)])
       : AbortSignal.timeout(20000),
-    headers: { 'Content-Type': 'application/json', ...(obtenerToken() ? { Authorization: `Bearer ${obtenerToken()}` } : {}), ...init.headers },
+    headers: { 'Content-Type': 'application/json', ...init.headers },
   })
 
   if (!respuesta.ok) {

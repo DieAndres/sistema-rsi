@@ -229,7 +229,6 @@ button[type='submit'] { background: var(--primary); border-color: var(--primary)
 .app-shell .panel-encabezado { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .app-shell .panel-encabezado h2 { margin-bottom: 0; }
 .app-shell .sobretitulo { font-size: 10px; font-weight: 700; text-transform: uppercase; }
-.rol-lector .mfa-passkey-button { display: none; }
 .mfa-qr { display: block; margin-top: 22px; max-width: 100%; height: auto; }
 .app-shell button.atencion-fila { width: 100%; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; text-align: left; background: transparent; padding: 12px 0; }
 .app-shell button.atencion-fila:hover { background: #f3f8f7; color: var(--primary); }

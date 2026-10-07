@@ -1,9 +1,9 @@
-import { obtenerToken } from "../../../shared/api/apiGet";
+import { apiFetch } from "../../../shared/api/apiGet";
 
 async function apiText(ruta: string) {
-  const respuesta = await fetch(ruta, {
+  const respuesta = await apiFetch(ruta, {
     signal: AbortSignal.timeout(20000),
-    headers: { Authorization: `Bearer ${obtenerToken() ?? ""}` },
+    headers: { },
   });
   if (!respuesta.ok) {
     if (respuesta.status === 401)
@@ -17,8 +17,8 @@ async function apiText(ruta: string) {
   return { contenido: await respuesta.text() };
 }
 async function apiControlesMarkdown(ruta: string) {
-  const respuesta = await fetch(ruta, {
-    headers: { Authorization: `Bearer ${obtenerToken() ?? ""}` },
+  const respuesta = await apiFetch(ruta, {
+    headers: { },
   });
   if (!respuesta.ok) throw new Error(`Error ${respuesta.status}`);
   const controles = (await respuesta.json()) as Array<{

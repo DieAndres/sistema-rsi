@@ -13,6 +13,7 @@ import { generateSecret, generateURI } from 'otplib';
 import { verificarTotp } from './totp';
 import { hashPassword, verifyPassword } from './password';
 import { ENTIDADES_AUDITABLES } from './auditoria.interceptor';
+import { SESSION_TTL_MS } from './session-http';
 const ROLES = new Set(['ADMINISTRADOR', 'RSI', 'DUENO_UNIDAD', 'LECTOR']);
 const ROLES_CON_TRABAJADOR = new Set(['DUENO_UNIDAD', 'LECTOR']);
 
@@ -262,23 +263,76 @@ export class AuthService {
         : (datos.trabajadorId ?? undefined),
       id,
     );
-    const actualizado = await this.prisma.usuario.update({
-      where: { id },
-      data: datos,
-      select: {
-        id: true,
-        correo: true,
-        rol: true,
-        activo: true,
-        trabajadorId: true,
-        creadoEn: true,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const actualizado = await tx.usuario.update({
+        where: { id },
+        data: datos,
+        select: {
+          id: true,
+          correo: true,
+          rol: true,
+          activo: true,
+          trabajadorId: true,
+          creadoEn: true,
+        },
+      });
+      const cambiaAcceso =
+        (datos.rol !== undefined && datos.rol !== existente.rol) ||
+        (datos.activo !== undefined && datos.activo !== existente.activo) ||
+        (datos.trabajadorId !== undefined &&
+          datos.trabajadorId !== existente.trabajadorId);
+      if (cambiaAcceso)
+        await tx.sesion.deleteMany({ where: { usuarioId: id } });
+      await tx.auditEvent.create({
+        data: {
+          eventType: 'USER_UPDATE',
+          entityType: 'AUTH',
+          entityId: id,
+          action: 'USER_UPDATE',
+          actorUserId,
+          result: 'EXITOSO',
+          metadata: { sesionesRevocadas: cambiaAcceso },
+        },
+      });
+      return actualizado;
     });
-    await this.registrarAuditoria('USER_UPDATE', actorUserId, id, 'EXITOSO');
-    return actualizado;
+  }
+
+  async revocarSesiones(usuarioId: string, actorUserId: string) {
+    if (
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        usuarioId,
+      )
+    ) {
+      throw new BadRequestException('Usuario inválido.');
+    }
+    return this.prisma.$transaction(async (tx) => {
+      if (
+        !(await tx.usuario.findUnique({
+          where: { id: usuarioId },
+          select: { id: true },
+        }))
+      ) {
+        throw new NotFoundException('Usuario no encontrado.');
+      }
+      const { count } = await tx.sesion.deleteMany({ where: { usuarioId } });
+      await tx.auditEvent.create({
+        data: {
+          eventType: 'SESSION_REVOKE',
+          entityType: 'AUTH',
+          entityId: usuarioId,
+          action: 'SESSION_REVOKE',
+          actorUserId,
+          result: 'EXITOSO',
+          metadata: { cantidad: count },
+        },
+      });
+      return { mensaje: 'Sesiones revocadas.', cantidad: count };
+    });
   }
 
   async logout(token: string) {
+    if (!token) return { mensaje: 'Sesión cerrada.' };
     const tokenHash = this.hashToken(token);
     const sesion = await this.prisma.sesion.findUnique({
       where: { tokenHash },
@@ -325,7 +379,12 @@ export class AuthService {
         },
       },
     });
-    if (!sesion || sesion.expiraEn <= new Date() || !sesion.usuario.activo) {
+    if (
+      !sesion ||
+      sesion.expiraEn <= new Date() ||
+      sesion.creadoEn.getTime() + SESSION_TTL_MS <= Date.now() ||
+      !sesion.usuario.activo
+    ) {
       throw new UnauthorizedException('La sesión no es válida.');
     }
     return {
@@ -347,14 +406,10 @@ export class AuthService {
       data: {
         usuarioId,
         tokenHash: this.hashToken(token),
-        expiraEn: new Date(Date.now() + 8 * 60 * 60 * 1000),
+        expiraEn: new Date(Date.now() + SESSION_TTL_MS),
       },
     });
     return token;
-  }
-
-  auditarPasskey(eventType: string, userId: string, result: string) {
-    return this.registrarAuditoria(eventType, userId, userId, result);
   }
 
   private validarPassword(password: string) {

@@ -43,4 +43,4 @@ Vigencia: 05/10/2026 01:50:24 UTC a 05/10/2027 01:50:24 UTC. Certificado y clave
 
 ## Alcance
 
-Se acredita la parte TLS de RNF-04 en laboratorio. El certificado es autofirmado y no se instaló confianza en Windows: el navegador puede mostrar un aviso. No acredita un certificado público, pruebas reales de Windows Hello ni todos los controles de RNF-04. Nginx → backend utiliza HTTP en la red privada Docker; TLS protege navegador → Nginx.
+Se acredita la parte TLS de RNF-04 en laboratorio. El certificado es autofirmado y no se instaló confianza en Windows: el navegador puede mostrar un aviso. No acredita un certificado público, pruebas reales con autenticadores ni todos los controles de RNF-04. Nginx → backend utiliza HTTP en la red privada Docker; TLS protege navegador → Nginx.

@@ -10,7 +10,7 @@ const ca = readFileSync(new URL('./certs/server.crt', import.meta.url));
 function solicitar(version, ruta) {
   return new Promise((resolve, reject) => {
     const req = https.get(new URL(ruta, origen), { ca, minVersion: version, maxVersion: version, family: 4 }, res => {
-      const resultado = { protocolo: res.socket.getProtocol(), estado: res.statusCode };
+      const resultado = { protocolo: res.socket.getProtocol(), estado: res.statusCode, cabeceras: res.headers };
       res.resume(); res.on('end', () => resolve(resultado));
     });
     req.setTimeout(5000, () => req.destroy(new Error('Tiempo agotado')));
@@ -21,11 +21,14 @@ function solicitar(version, ruta) {
 for (const version of ['TLSv1.2', 'TLSv1.3']) {
   const pagina = await solicitar(version, '/');
   assert.equal(pagina.estado, 200); assert.equal(pagina.protocolo, version);
+  assert.match(pagina.cabeceras['content-security-policy'], /script-src 'self';/);
+  assert.equal(pagina.cabeceras['x-content-type-options'], 'nosniff');
   console.log(`${version}: HTTPS 200, certificado y nombre del servidor verificados.`);
 }
 const api = await solicitar('TLSv1.3', '/api/v1/auth/me');
 assert.equal(api.estado, 401);
 console.log('Proxy API por HTTPS: 401 sin credenciales (esperado).');
+console.log('CSP y nosniff: comprobados.');
 const redireccion = await fetch(`${httpOrigin}/prueba?tls=1`, { redirect: 'manual', signal: AbortSignal.timeout(5000) });
 assert.equal(redireccion.status, 308);
 assert.equal(redireccion.headers.get('location'), new URL('/prueba?tls=1', origen).href);

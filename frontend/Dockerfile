@@ -7,6 +7,7 @@ RUN npm run build
 
 FROM nginx:stable-alpine
 COPY infrastructure/nginx/default.conf /etc/nginx/templates/default.conf.template
+COPY infrastructure/nginx/security-headers.conf /etc/nginx/security-headers.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80 443
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 CMD wget -q -O /dev/null http://127.0.0.1/healthz || exit 1

@@ -221,18 +221,14 @@ se almacena siempre con Argon2id; no se guarda ni se imprime el valor original.
 Después del primer acceso, eliminar las variables de entorno. El administrador
 inicial puede crear las demás cuentas desde el sistema.
 
-## Passkeys / Windows Hello
-
-En `backend/.env`, configurar `WEBAUTHN_ORIGIN` con el origen del navegador
-(`http://localhost:5173` en desarrollo). Aplicar las migraciones con
-`npx prisma migrate deploy` antes de probar. El frontend registra passkeys desde
-**Seguridad de cuenta** y permite usarlas para iniciar sesión. Windows Hello
-puede ser el autenticador del navegador; el backend solo recibe y verifica la
-respuesta WebAuthn, nunca el PIN. El flujo, las rutas y las pruebas manuales
-están descritos en `docs/09-gestion-accesos.md`.
-
 ## Ciclo de incidentes
 
 `POST /api/v1/seguridad/incidentes` crea en ABIERTO. `PATCH /api/v1/seguridad/incidentes/{id}` permite mantener la etapa o avanzar por CONTENIDO → ERRADICADO → RECUPERADO → CERRADO. Avanzar exige `accionRealizada`; cerrar exige `leccionesAprendidas`. Los GET incluyen `historial` con acciones, autor autenticado y fecha del servidor. La operación y AuditEvent comparten la transacción de la petición.
 
 La migración `20261001190000_historial_incidentes` requiere `prisma migrate deploy` y `prisma generate`. [Uso, contrato, migración y límites](../docs/evidencias/incidentes-ciclo.md).
+
+## Sesiones web y origen autorizado
+
+El acceso usa cookie HttpOnly, Secure y SameSite=Strict, con vencimiento máximo de dos horas. Login no devuelve tokens y la API ya no acepta Bearer. Para escrituras, enviar las cookies y la cabecera Origin del sitio autorizado. El navegador la envía automáticamente. Configurar SESSION_ALLOWED_ORIGINS para el origen real; solicitudes sin Origin o con un origen ajeno se rechazan con 403.
+
+POST /api/v1/auth/sesiones/revocar cierra las sesiones propias. Administrador puede usar POST /api/v1/auth/usuarios/:id/sesiones/revocar. Cambios de rol, vínculo o estado revocan sesiones automáticamente. [Pruebas y límites](../docs/evidencias/sesiones-cookie-csrf.md).

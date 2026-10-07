@@ -3,13 +3,12 @@ import {
   Body,
   Controller,
   Get,
-  Headers,
   Param,
   Patch,
   Post,
   Query,
   Req,
-  UnauthorizedException,
+  Res,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CrearUsuarioDto } from './dto/crear-usuario.dto';
@@ -17,58 +16,17 @@ import { LoginDto } from './dto/login.dto';
 import { Public } from './decorators/public.decorator';
 import { Roles } from './decorators/roles.decorator';
 import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
-import { PasskeyService } from './passkey.service';
-import type {
-  AuthenticationResponseJSON,
-  RegistrationResponseJSON,
-} from '@simplewebauthn/server';
+import type { Response } from 'express';
+import {
+  clearSession,
+  cookie,
+  SESSION_COOKIE,
+  setSession,
+} from './session-http';
 
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly auth: AuthService,
-    private readonly passkeys: PasskeyService,
-  ) {}
-
-  @Post('passkey/register/options')
-  registroPasskeyOpciones(@Req() request: RequestConUsuario) {
-    return this.passkeys.registroOpciones(request.user!.id);
-  }
-
-  @Post('passkey/register/verify')
-  registrarPasskey(
-    @Req() request: RequestConUsuario,
-    @Body() datos: { challengeId: string; response: RegistrationResponseJSON },
-  ) {
-    return this.passkeys.registrar(
-      request.user!.id,
-      datos?.challengeId,
-      datos?.response,
-    );
-  }
-
-  @Post('passkey/login/options')
-  @Public()
-  loginPasskeyOpciones(@Body('correo') correo: string) {
-    return this.passkeys.loginOpciones(correo);
-  }
-
-  @Post('passkey/login/verify')
-  @Public()
-  loginPasskey(
-    @Body()
-    datos: {
-      challengeId: string;
-      response: AuthenticationResponseJSON;
-      codigoMfa?: string;
-    },
-  ) {
-    return this.passkeys.login(
-      datos?.challengeId,
-      datos?.response,
-      datos?.codigoMfa,
-    );
-  }
+  constructor(private readonly auth: AuthService) {}
 
   @Post('usuarios')
   @Roles('ADMINISTRADOR')
@@ -104,8 +62,37 @@ export class AuthController {
 
   @Post('login')
   @Public()
-  login(@Body() datos: LoginDto) {
-    return this.auth.login(datos);
+  async login(
+    @Body() datos: LoginDto,
+    @Req() request: RequestConUsuario,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.auth.login(datos);
+    await this.auth.logout(cookie(request, SESSION_COOKIE));
+    setSession(response, result.token);
+    return {
+      usuario: result.usuario,
+      mfaSetupRequired: result.mfaSetupRequired,
+    };
+  }
+
+  @Post('sesiones/revocar')
+  async revocarPropias(
+    @Req() request: RequestConUsuario,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.auth.revocarSesiones(
+      request.user!.id,
+      request.user!.id,
+    );
+    clearSession(response);
+    return result;
+  }
+
+  @Post('usuarios/:id/sesiones/revocar')
+  @Roles('ADMINISTRADOR')
+  revocarUsuario(@Param('id') id: string, @Req() request: RequestConUsuario) {
+    return this.auth.revocarSesiones(id, request.user!.id);
   }
 
   @Post('mfa/setup')
@@ -122,21 +109,21 @@ export class AuthController {
   }
 
   @Get('me')
-  async me(@Headers('authorization') authorization?: string) {
-    const token = authorization?.startsWith('Bearer ')
-      ? authorization.slice(7)
-      : '';
-    if (!token) {
-      throw new UnauthorizedException('Se requiere un token Bearer.');
-    }
-    return this.auth.obtenerPorToken(token);
+  me(
+    @Req() request: RequestConUsuario,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    response.setHeader('Cache-Control', 'no-store');
+    return this.auth.obtenerPorToken(cookie(request, SESSION_COOKIE));
   }
 
   @Post('logout')
-  logout(@Headers('authorization') authorization?: string) {
-    const token = authorization?.startsWith('Bearer ')
-      ? authorization.slice(7)
-      : '';
-    return this.auth.logout(token);
+  async logout(
+    @Req() request: RequestConUsuario,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.auth.logout(cookie(request, SESSION_COOKIE));
+    clearSession(response);
+    return result;
   }
 }

@@ -1,3 +1,4 @@
+import { sessionHeaders } from './helpers/session-headers';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { randomUUID } from 'node:crypto';
@@ -44,18 +45,18 @@ describe('Ciclo trazable de incidentes', () => {
     };
     await api()
       .post('/api/v1/seguridad/incidentes')
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .send({ ...datos, estado: 'CERRADO' })
       .expect(400);
     const creado = await api()
       .post('/api/v1/seguridad/incidentes')
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .send(datos)
       .expect(201);
     incidenteId = creado.body.id;
     const ruta = `/api/v1/seguridad/incidentes/${incidenteId}`;
     const guardar = (datos: object) =>
-      api().patch(ruta).auth(token, { type: 'bearer' }).send(datos);
+      api().patch(ruta).set(sessionHeaders(token)).send(datos);
     await guardar({ estado: 'INVENTADO', accionRealizada: 'No' }).expect(400);
     await guardar({ estado: 'ERRADICADO', accionRealizada: 'Salto' }).expect(
       400,
@@ -83,7 +84,7 @@ describe('Ciclo trazable de incidentes', () => {
     await guardar({ leccionesAprendidas: null }).expect(400);
     const final = await api()
       .get(ruta)
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .expect(200);
     expect(final.body.estado).toBe('CERRADO');
     expect(

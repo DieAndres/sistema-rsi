@@ -7,9 +7,9 @@ import { AuditoriaPage } from '../features/auth/AuditoriaPage'
 import { MfaPage } from '../features/auth/MfaPage'
 import {
   apiGet,
-  obtenerToken,
+  apiFetch,
+  guardarUsuarioActual,
   obtenerUsuarioActual,
-  eliminarToken,
   eliminarUsuarioActual,
 } from '../shared/api/apiGet'
 import { DashboardPage } from '../features/kpi/pages/DashboardPage'
@@ -70,7 +70,8 @@ const titulos: Record<Pantalla, string> = {
 }
 
 function App() {
-  const [autenticado, setAutenticado] = useState(Boolean(obtenerToken()))
+  const [autenticado, setAutenticado] = useState(false)
+  const [verificandoSesion, setVerificandoSesion] = useState(true)
   const [usuario, setUsuario] = useState(obtenerUsuarioActual())
   const [pantalla, setPantalla] = useState<Pantalla>(
     ['ADMINISTRADOR', 'RSI'].includes(usuario?.rol ?? '')
@@ -85,10 +86,11 @@ function App() {
     usuario?.mfaConfirmado === false
 
   useEffect(() => {
-    if (!obtenerToken()) return
     void apiGet<typeof usuario>('/api/v1/auth/me', new AbortController().signal)
       .then((actual) => {
         setUsuario(actual)
+        if (actual) guardarUsuarioActual(actual)
+        setAutenticado(true)
         if (
           ['ADMINISTRADOR', 'RSI'].includes(actual?.rol ?? '') &&
           actual?.mfaConfirmado === false
@@ -101,8 +103,17 @@ function App() {
               : 'activos',
           )
       })
-      .catch(() => undefined)
+      .catch(() => { eliminarUsuarioActual(); setUsuario(null); setAutenticado(false) })
+      .finally(() => setVerificandoSesion(false))
   }, [])
+
+  useEffect(() => {
+    const cerrar = () => { eliminarUsuarioActual(); setUsuario(null); setAutenticado(false) }
+    window.addEventListener('rsi-session-ended', cerrar)
+    return () => window.removeEventListener('rsi-session-ended', cerrar)
+  }, [])
+
+  if (verificandoSesion) return <main className="contenido"><p role="status">Verificando sesión…</p></main>
 
   if (!autenticado)
     return (
@@ -122,13 +133,7 @@ function App() {
     )
 
   async function salir() {
-    const token = obtenerToken()
-    if (token)
-      await fetch('/api/v1/auth/logout', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-    eliminarToken()
+    await apiFetch('/api/v1/auth/logout', { method: 'POST' })
     eliminarUsuarioActual()
     setUsuario(null)
     setAutenticado(false)

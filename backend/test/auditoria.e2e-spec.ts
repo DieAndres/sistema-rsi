@@ -1,3 +1,4 @@
+import { sessionHeaders } from './helpers/session-headers';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { randomUUID } from 'node:crypto';
@@ -76,7 +77,7 @@ describe('Auditoría de gestión', () => {
   it('registra altas, cambios, relaciones, bajas, aprobaciones, SoA y exportaciones con su actor', async () => {
     const org = await api()
       .post('/api/v1/organizaciones')
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .send({ nombre: `Prueba auditoría ${sufijo}`, password: 'campo-ajeno-ignorado', token: 'campo-ajeno-ignorado' })
       .expect(201);
     organizacionId = org.body.id;
@@ -84,7 +85,7 @@ describe('Auditoría de gestión', () => {
     expect(JSON.stringify(alta.metadata)).not.toContain('campo-ajeno-ignorado');
     await api()
       .patch(`/api/v1/organizaciones/${organizacionId}`)
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .send({ nombre: 'Organización modificada' })
       .expect(200);
     const evento = await prisma.auditEvent.findFirstOrThrow({
@@ -102,25 +103,25 @@ describe('Auditoría de gestión', () => {
 
     const unidad = await api()
       .post(`/api/v1/organizaciones/${organizacionId}/unidades`)
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .send({ nombre: 'Área prueba', tipo: 'AREA' })
       .expect(201);
     unidadId = unidad.body.id;
     const proceso = await api()
       .post(`/api/v1/organizaciones/${organizacionId}/procesos`)
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .send({ nombre: 'Proceso prueba' })
       .expect(201);
     procesoId = proceso.body.id;
     const activo = await api()
       .post(`/api/v1/seguridad/unidades/${unidadId}/activos`)
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .send({ nombre: 'Activo prueba', tipo: 'HW', clasificacion: 'INTERNO' })
       .expect(201);
     activoId = activo.body.id;
     await api()
       .patch(`/api/v1/seguridad/activos/${activoId}`)
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .send({ procesoIds: [procesoId] })
       .expect(200);
     expect(
@@ -141,13 +142,13 @@ describe('Auditoría de gestión', () => {
 
     const politica = await api()
       .post(`/api/v1/cumplimiento/politicas/${organizacionId}`)
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .send({ titulo: 'Política prueba' })
       .expect(201);
     politicaId = politica.body.id;
     await api()
       .patch(`/api/v1/cumplimiento/politicas/${politicaId}`)
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .send({ estado: 'APROBADA' })
       .expect(200);
     expect(
@@ -159,25 +160,25 @@ describe('Auditoría de gestión', () => {
       .put(
         `/api/v1/exportaciones/organizaciones/${organizacionId}/soa/controles/A.5.1`,
       )
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .send({ aplica: false, justificacion: 'Escenario de prueba' })
       .expect(200);
     await api()
       .put(
         `/api/v1/exportaciones/organizaciones/${organizacionId}/soa/brechas/Gobernar`,
       )
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .send({ perfilObjetivo: 'Avanzado', madurez: 0 })
       .expect(200);
     await api()
       .get(
         `/api/v1/exportaciones/organizaciones/${organizacionId}/inventario-activos`,
       )
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .expect(200);
     await api()
       .get(`/api/v1/exportaciones/organizaciones/${organizacionId}/soa`)
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .expect(200);
     expect(
       await prisma.auditEvent.count({
@@ -186,7 +187,7 @@ describe('Auditoría de gestión', () => {
     ).toBe(2);
     await api()
       .delete(`/api/v1/seguridad/activos/${activoId}`)
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .expect(200);
     expect(
       (
@@ -211,29 +212,29 @@ describe('Auditoría de gestión', () => {
     const ruta = `/api/v1/auth/auditoria?entidad=RIESGO&usuarioId=${usuarioId}`;
     const primera = await api()
       .get(ruta)
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .expect(200);
     expect(primera.body.total).toBe(51);
     expect(primera.body.eventos).toHaveLength(50);
     const segunda = await api()
       .get(`${ruta}&pagina=2`)
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .expect(200);
     expect(segunda.body.eventos).toHaveLength(1);
     expect(segunda.body.eventos[0].timestamp).toBe('2024-01-01T00:00:00.000Z');
     await api().get(ruta).expect(401);
-    await api().get(ruta).auth(lectorToken, { type: 'bearer' }).expect(403);
+    await api().get(ruta).set(sessionHeaders(lectorToken)).expect(403);
     await api()
       .get('/api/v1/auth/auditoria?entidad=INVALIDA')
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .expect(400);
     await api()
       .get('/api/v1/auth/auditoria?pagina=-1')
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .expect(400);
     await api()
       .get('/api/v1/auth/auditoria?usuarioId=invalido')
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .expect(400);
   });
 
@@ -243,12 +244,12 @@ describe('Auditoría de gestión', () => {
     });
     await api()
       .patch(`/api/v1/organizaciones/${organizacionId}`)
-      .auth(token, { type: 'bearer' })
+      .set(sessionHeaders(token))
       .send({ nombre: '' })
       .expect(400);
     await api()
       .patch(`/api/v1/organizaciones/${organizacionId}`)
-      .auth(lectorToken, { type: 'bearer' })
+      .set(sessionHeaders(lectorToken))
       .send({ nombre: 'Cambio prohibido' })
       .expect(403);
     expect(

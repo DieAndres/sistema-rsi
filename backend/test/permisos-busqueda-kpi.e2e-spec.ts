@@ -1,3 +1,4 @@
+import { sessionHeaders } from './helpers/session-headers';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { APP_GUARD } from '@nestjs/core';
@@ -9,6 +10,9 @@ import { BusquedaController } from '../src/busqueda/busqueda.controller';
 import { BusquedaService } from '../src/busqueda/busqueda.service';
 import { KpiController } from '../src/kpi/kpi.controller';
 import { KpiService } from '../src/kpi/kpi.service';
+
+const roleTokens = new Map(['ADMINISTRADOR', 'RSI', 'DUENO_UNIDAD', 'LECTOR'].map(rol => [Buffer.from(rol.padEnd(32, ' ')).toString('hex'), rol]));
+const tokenForRole = (rol: string) => [...roleTokens].find(([, value]) => value === rol)![0];
 
 describe('Permisos de búsqueda y KPI', () => {
   let app: INestApplication;
@@ -25,7 +29,7 @@ describe('Permisos de búsqueda y KPI', () => {
     const modulo = await Test.createTestingModule({
       controllers: [BusquedaController, KpiController],
       providers: [
-        { provide: AuthService, useValue: { obtenerPorToken: (rol: string) => ({ id: 'prueba', rol, mfaConfirmado: true }) } },
+        { provide: AuthService, useValue: { obtenerPorToken: (token: string) => ({ id: 'prueba', rol: roleTokens.get(token), mfaConfirmado: true }) } },
         { provide: BusquedaService, useValue: { buscar: consultar } },
         { provide: KpiService, useValue: Object.fromEntries([
           'resumen', 'listarFormulas', 'listarIndicadores', 'crearIndicador',
@@ -46,7 +50,7 @@ describe('Permisos de búsqueda y KPI', () => {
     for (const rol of ['ADMINISTRADOR', 'RSI']) {
       for (const [metodo, ruta] of rutas) {
         await request(app.getHttpServer())[metodo](`/api/v1${ruta}`)
-          .auth(rol, { type: 'bearer' }).send({})
+          .set(sessionHeaders(tokenForRole(rol))).send({})
           .expect(metodo === 'post' ? 201 : 200);
       }
     }
@@ -57,7 +61,7 @@ describe('Permisos de búsqueda y KPI', () => {
     for (const rol of ['DUENO_UNIDAD', 'LECTOR']) {
       for (const [metodo, ruta] of rutas) {
         await request(app.getHttpServer())[metodo](`/api/v1${ruta}`)
-          .auth(rol, { type: 'bearer' }).send({}).expect(403);
+          .set(sessionHeaders(tokenForRole(rol))).send({}).expect(403);
       }
     }
     expect(consultar).not.toHaveBeenCalled();
@@ -65,7 +69,7 @@ describe('Permisos de búsqueda y KPI', () => {
 
   it('exige autenticación', async () => {
     for (const [metodo, ruta] of rutas) {
-      await request(app.getHttpServer())[metodo](`/api/v1${ruta}`).send({}).expect(401);
+      await request(app.getHttpServer())[metodo](`/api/v1${ruta}`).set(sessionHeaders('a'.repeat(64), true)).send({}).expect(401);
     }
   });
 });

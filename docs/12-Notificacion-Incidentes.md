@@ -87,7 +87,7 @@ El responsable del tratamiento debe identificarse según quien determine finalid
 | Detección y conocimiento de la vulneración | Horas separadas y persona que conoce el hecho; necesarias para comprobar actuaciones y plazo. |
 | Descripción clara y completa | Explicar cómo se afectó la plataforma, lo confirmado, el período conocido y lo que sigue bajo investigación, sin divulgar instrucciones o secretos innecesarios. |
 | Categoría de datos personales afectados | Si el hecho los alcanza: nombres, cargos, correos, cuentas, vínculos de trabajadores y metadatos de auditoría. Determinar categorías reales antes de afirmar afectación. |
-| Información de autenticación afectada | Precisar posible acceso a hashes, semillas TOTP o sesiones, cuando la evidencia lo sustente, sin adjuntar sus valores. La biometría y PIN de Windows Hello no se reciben ni almacenan en el flujo RSI observado. |
+| Información de autenticación afectada | Precisar posible acceso a hashes, semillas TOTP o sesiones, cuando la evidencia lo sustente, sin adjuntar sus valores. La biometría y el PIN del autenticador no se reciben ni almacenan en el flujo RSI observado. |
 | Número de personas afectadas | Calcular desde el alcance verificado, evitando contar tablas o registros como personas únicas; indicar cantidad estimada si no hay certeza. No medido porque no hay caso. |
 | Riesgos para afectados | Evaluar divulgación de información personal, suplantación, pérdida o alteración de registros y otros perjuicios según los datos y hechos del caso. |
 | Medidas de minimización | Acciones y horas comprobadas; verificar inicio de procedimientos dentro de las primeras 24 horas de constatado el incidente de datos personales. |

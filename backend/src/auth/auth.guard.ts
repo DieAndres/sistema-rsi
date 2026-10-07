@@ -8,6 +8,7 @@ import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { IS_PUBLIC_KEY } from './decorators/public.decorator';
+import { cookie, SESSION_COOKIE, validateOrigin } from './session-http';
 type RequestWithUser = Request & {
   user?: Record<string, unknown>;
 };
@@ -20,6 +21,8 @@ export class AuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext) {
+    const request = context.switchToHttp().getRequest<RequestWithUser>();
+    validateOrigin(request);
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -27,11 +30,7 @@ export class AuthGuard implements CanActivate {
     if (isPublic) {
       return true;
     }
-    const request = context.switchToHttp().getRequest<RequestWithUser>();
-    const authorization = request.headers.authorization;
-    const token = authorization?.startsWith('Bearer ')
-      ? authorization.slice(7)
-      : '';
+    const token = cookie(request, SESSION_COOKIE);
     if (!token) {
       throw new UnauthorizedException('Se requiere autenticación.');
     }
@@ -44,6 +43,7 @@ export class AuthGuard implements CanActivate {
       request.path.endsWith('/auth/mfa/setup') ||
       request.path.endsWith('/auth/mfa/confirm') ||
       request.path.endsWith('/auth/me') ||
+      request.path.endsWith('/auth/sesiones/revocar') ||
       request.path.endsWith('/auth/logout');
     if (
       ['ADMINISTRADOR', 'RSI'].includes(user.rol ?? '') &&

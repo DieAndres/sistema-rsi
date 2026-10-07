@@ -32,13 +32,14 @@ npm install
 npm run dev
 ```
 
-Vite reenvía `/api` al backend en `http://localhost:3001`. Para registrar o usar
-passkeys en desarrollo, abrir `http://localhost:5173`, que debe coincidir con
-`WEBAUTHN_ORIGIN` del backend. En **Seguridad de cuenta** se registra la passkey;
-en la pantalla de acceso se usa **Entrar con passkey / Windows Hello**.
+La interfaz utiliza contraseña y TOTP. El registro y acceso con passkeys quedan como mejora futura.
 Para verificar el frontend antes de integrar cambios, ejecutar `npm run build`
 y `npm run lint`.
 
 ## Incidentes: edición y seguimiento
 
 En Seguridad → Incidentes, **Editar** modifica datos generales y **Seguimiento** abre un panel con recorrido, etapa actual, acciones, lecciones e historial. Guardar seguimiento mantiene el panel abierto; Volver regresa al formulario general. Las acciones son obligatorias en el panel y las lecciones se exigen para cerrar. [Guía completa](../docs/evidencias/incidentes-ciclo.md).
+
+## Sesiones protegidas
+
+El frontend usa cookies; el navegador envía Origin y el backend comprueba que corresponda a un sitio autorizado. No almacena credenciales en localStorage; consulta /auth/me para recuperar la cuenta al recargar. La CSP se aplica en el despliegue Nginx. Para verificar los controles, usar HTTPS de Docker; no desactivar Secure para publicar por HTTP.
