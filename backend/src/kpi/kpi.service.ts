@@ -7,7 +7,6 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { ActualizarIndicadorKpiDto } from './dto/actualizar-indicador-kpi.dto';
 import { CrearIndicadorKpiDto } from './dto/crear-indicador-kpi.dto';
-
 const FORMULAS = [
   {
     codigo: 'ACTIVOS_TOTAL',
@@ -40,7 +39,6 @@ const FORMULAS = [
     unidad: 'CANTIDAD',
   },
 ] as const;
-
 const codigosFormula = new Set<string>(FORMULAS.map(({ codigo }) => codigo));
 
 @Injectable()
@@ -60,10 +58,8 @@ export class KpiService {
     if (typeof datos.codigo !== 'string' || typeof datos.nombre !== 'string') {
       throw new BadRequestException('El código y el nombre deben ser texto.');
     }
-
     const codigo = datos.codigo?.trim();
     const nombre = datos.nombre?.trim();
-
     if (!codigo || !/^[A-Z][A-Z0-9_]{1,49}$/.test(codigo)) {
       throw new BadRequestException(
         'El código debe tener entre 2 y 50 caracteres: mayúsculas, números o guion bajo.',
@@ -86,7 +82,6 @@ export class KpiService {
     if (datos.descripcion !== undefined) {
       this.validarDescripcion(datos.descripcion);
     }
-
     return this.prisma.indicadorKpi.create({
       data: {
         codigo,
@@ -110,12 +105,12 @@ export class KpiService {
         'Los datos de actualización son obligatorios.',
       );
     }
-
     const indicador = await this.prisma.indicadorKpi.findUnique({
       where: { id },
     });
-    if (!indicador) throw new NotFoundException('Indicador KPI no encontrado');
-
+    if (!indicador) {
+      throw new NotFoundException('Indicador KPI no encontrado');
+    }
     if (
       datos.nombre !== undefined &&
       (typeof datos.nombre !== 'string' ||
@@ -126,24 +121,34 @@ export class KpiService {
         'El nombre es obligatorio (máximo 120 caracteres).',
       );
     }
-    if (datos.formula !== undefined) this.validarFormula(datos.formula);
-    if (datos.meta !== undefined) this.validarMeta(datos.meta);
+    if (datos.formula !== undefined) {
+      this.validarFormula(datos.formula);
+    }
+    if (datos.meta !== undefined) {
+      this.validarMeta(datos.meta);
+    }
     if (datos.descripcion !== undefined && datos.descripcion !== null) {
       this.validarDescripcion(datos.descripcion);
     }
     if (datos.activo !== undefined && typeof datos.activo !== 'boolean') {
       throw new BadRequestException('El estado activo debe ser booleano.');
     }
-
     const cambios: ActualizarIndicadorKpiDto = {};
-    if (datos.nombre !== undefined) cambios.nombre = datos.nombre.trim();
+    if (datos.nombre !== undefined) {
+      cambios.nombre = datos.nombre.trim();
+    }
     if (datos.descripcion !== undefined) {
       cambios.descripcion = datos.descripcion?.trim() || null;
     }
-    if (datos.formula !== undefined) cambios.formula = datos.formula;
-    if (datos.meta !== undefined) cambios.meta = datos.meta;
-    if (datos.activo !== undefined) cambios.activo = datos.activo;
-
+    if (datos.formula !== undefined) {
+      cambios.formula = datos.formula;
+    }
+    if (datos.meta !== undefined) {
+      cambios.meta = datos.meta;
+    }
+    if (datos.activo !== undefined) {
+      cambios.activo = datos.activo;
+    }
     return this.prisma.indicadorKpi.update({ where: { id }, data: cambios });
   }
 
@@ -151,13 +156,14 @@ export class KpiService {
     const indicador = await this.prisma.indicadorKpi.findUnique({
       where: { id },
     });
-    if (!indicador) throw new NotFoundException('Indicador KPI no encontrado');
+    if (!indicador) {
+      throw new NotFoundException('Indicador KPI no encontrado');
+    }
     if (!indicador.activo) {
       throw new BadRequestException(
         'No se pueden registrar mediciones de un indicador inactivo.',
       );
     }
-
     const valor = await this.calcular(indicador.formula);
     return this.prisma.medicionKpi.create({
       data: { indicadorId: id, valor },
@@ -169,8 +175,9 @@ export class KpiService {
       where: { id },
       select: { id: true },
     });
-    if (!existe) throw new NotFoundException('Indicador KPI no encontrado');
-
+    if (!existe) {
+      throw new NotFoundException('Indicador KPI no encontrado');
+    }
     return this.prisma.medicionKpi.findMany({
       where: { indicadorId: id },
       orderBy: [{ fechaRegistro: 'desc' }, { id: 'desc' }],
@@ -193,7 +200,6 @@ export class KpiService {
       this.prisma.vulnerabilidad.count({ where: { cvss: { gte: 9 } } }),
       this.prisma.incidente.groupBy({ by: ['estado'], _count: { _all: true } }),
     ]);
-
     return {
       activos: {
         total: activos,

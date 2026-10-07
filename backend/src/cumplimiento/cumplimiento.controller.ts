@@ -1,3 +1,4 @@
+import type { RequestConUsuario } from '../auth/usuario-autenticado';
 import {
   Body,
   Controller,
@@ -9,7 +10,6 @@ import {
   Post,
   Req,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { CumplimientoService } from './cumplimiento.service';
 import { CrearPoliticaDto } from './dto/politica/crear-politica.dto';
 import { ActualizarPoliticaDto } from './dto/politica/actualizar-politica.dto';
@@ -26,36 +26,38 @@ import { ActualizarHitoDto } from './dto/hito/actualizar-hito.dto';
 export class CumplimientoController {
   constructor(private readonly service: CumplimientoService) {}
 
-  @Post('politicas/:organizacionId') crearPolitica(
+  @Post('politicas/:organizacionId')
+  crearPolitica(
     @Param('organizacionId') id: string,
-    @Body() d: CrearPoliticaDto,
+    @Body() datos: CrearPoliticaDto,
   ) {
-    return this.service.crearPolitica(id, d);
+    return this.service.crearPolitica(id, datos);
   }
 
-  @Get('politicas') listarPoliticas(
-    @Req()
-    request: Request & {
-      user?: { rol?: string; organizacionId?: string | null };
-    },
-  ) {
+  @Get('politicas')
+  listarPoliticas(@Req() request: RequestConUsuario) {
     return this.service.listarPoliticas(this.alcanceOrganizacion(request));
   }
 
-  @Get('politicas/:id') async consultarPolitica(@Param('id') id: string) {
-    const x = await this.service.consultarPolitica(id);
-    if (!x) throw new NotFoundException('Política no encontrada');
-    return x;
+  @Get('politicas/:id')
+  async consultarPolitica(@Param('id') id: string) {
+    const politica = await this.service.consultarPolitica(id);
+    if (!politica) {
+      throw new NotFoundException('Política no encontrada');
+    }
+    return politica;
   }
 
-  @Patch('politicas/:id') actualizarPolitica(
+  @Patch('politicas/:id')
+  actualizarPolitica(
     @Param('id') id: string,
-    @Body() d: ActualizarPoliticaDto,
+    @Body() datos: ActualizarPoliticaDto,
   ) {
-    return this.service.actualizarPolitica(id, d);
+    return this.service.actualizarPolitica(id, datos);
   }
 
-  @Delete('politicas/:id') eliminarPolitica(@Param('id') id: string) {
+  @Delete('politicas/:id')
+  eliminarPolitica(@Param('id') id: string) {
     return this.service.eliminarPolitica(id);
   }
 
@@ -68,23 +70,16 @@ export class CumplimientoController {
   }
 
   @Get('evidencias')
-  listarEvidencias(
-    @Req()
-    request: Request & {
-      user?: { rol?: string; organizacionId?: string | null };
-    },
-  ) {
+  listarEvidencias(@Req() request: RequestConUsuario) {
     return this.service.listarEvidencias(this.alcanceOrganizacion(request));
   }
 
   @Get('evidencias/:id')
   async consultarEvidencia(@Param('id') id: string) {
     const evidencia = await this.service.consultarEvidencia(id);
-
     if (!evidencia) {
       throw new NotFoundException('Evidencia no encontrada');
     }
-
     return evidencia;
   }
 
@@ -110,23 +105,16 @@ export class CumplimientoController {
   }
 
   @Get('planes')
-  listarPlanes(
-    @Req()
-    request: Request & {
-      user?: { rol?: string; organizacionId?: string | null };
-    },
-  ) {
+  listarPlanes(@Req() request: RequestConUsuario) {
     return this.service.listarPlanes(this.alcanceOrganizacion(request));
   }
 
   @Get('planes/:id')
   async consultarPlan(@Param('id') id: string) {
     const plan = await this.service.consultarPlan(id);
-
     if (!plan) {
       throw new NotFoundException('Plan no encontrado');
     }
-
     return plan;
   }
 
@@ -156,7 +144,9 @@ export class CumplimientoController {
     @Body() datos: ActualizarHitoDto,
   ) {
     const hito = await this.service.actualizarHito(id, datos);
-    if (!hito) throw new NotFoundException('Hito no encontrado');
+    if (!hito) {
+      throw new NotFoundException('Hito no encontrado');
+    }
     return hito;
   }
 
@@ -174,23 +164,16 @@ export class CumplimientoController {
   }
 
   @Get('procedimientos')
-  listarProcedimientos(
-    @Req()
-    request: Request & {
-      user?: { rol?: string; organizacionId?: string | null };
-    },
-  ) {
+  listarProcedimientos(@Req() request: RequestConUsuario) {
     return this.service.listarProcedimientos(this.alcanceOrganizacion(request));
   }
 
   @Get('procedimientos/:id')
   async consultarProcedimiento(@Param('id') id: string) {
     const procedimiento = await this.service.consultarProcedimiento(id);
-
     if (!procedimiento) {
       throw new NotFoundException('Procedimiento no encontrado');
     }
-
     return procedimiento;
   }
 
@@ -207,11 +190,7 @@ export class CumplimientoController {
     return this.service.eliminarProcedimiento(id);
   }
 
-  private alcanceOrganizacion(
-    request: Request & {
-      user?: { rol?: string; organizacionId?: string | null };
-    },
-  ) {
+  private alcanceOrganizacion(request: RequestConUsuario) {
     return ['DUENO_UNIDAD', 'LECTOR'].includes(request.user?.rol ?? '')
       ? (request.user?.organizacionId ?? undefined)
       : undefined;

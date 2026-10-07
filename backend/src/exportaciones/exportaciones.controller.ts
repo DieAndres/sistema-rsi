@@ -1,3 +1,4 @@
+import type { RequestConUsuario } from '../auth/usuario-autenticado';
 import {
   Body,
   Controller,
@@ -103,12 +104,7 @@ export class ExportacionesController {
     return contenido;
   }
 
-  private validarAlcance(
-    id: string,
-    request: Request & {
-      user?: { rol?: string; organizacionId?: string | null };
-    },
-  ) {
+  private validarAlcance(id: string, request: RequestConUsuario) {
     if (
       ['DUENO_UNIDAD', 'LECTOR'].includes(request.user?.rol ?? '') &&
       request.user?.organizacionId !== id

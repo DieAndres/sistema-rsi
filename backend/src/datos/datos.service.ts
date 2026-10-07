@@ -20,7 +20,9 @@ const MODULOS = {
   evaluacionesSoa: 'EvaluacionSoa',
   brechasMcu: 'BrechaMcu',
 } as const;
-type Delegado = { findMany(args: unknown): Promise<Registro[]> };
+type Delegado = {
+  findMany(args: unknown): Promise<Registro[]>;
+};
 function delegado(tx: Prisma.TransactionClient, modelo: string): Delegado {
   return (tx as unknown as Record<string, Delegado>)[
     modelo[0].toLowerCase() + modelo.slice(1)
@@ -28,6 +30,7 @@ function delegado(tx: Prisma.TransactionClient, modelo: string): Delegado {
 }
 const modeloDe = (nombre: string) =>
   Prisma.dmmf.datamodel.models.find((m) => m.name === nombre)!;
+
 @Injectable()
 export class DatosService {
   constructor(private readonly prisma: PrismaService) {}
@@ -35,30 +38,32 @@ export class DatosService {
   async exportar(id: string, actor: string): Promise<Paquete> {
     return this.prisma.$transaction(
       async (tx) => {
-        if (!(await tx.organizacion.findUnique({ where: { id } })))
+        if (!(await tx.organizacion.findUnique({ where: { id } }))) {
           throw new NotFoundException('Organización inexistente.');
+        }
         const datos: Record<string, Registro[]> = {};
         for (const [modulo, nombre] of Object.entries(MODULOS)) {
           let where: unknown;
           if (
             nombre === 'UnidadOrganizativa' ||
             modeloDe(nombre).fields.some((f) => f.name === 'organizacionId')
-          )
+          ) {
             where = { organizacionId: id };
-          else if (nombre === 'Trabajador' || nombre === 'Activo')
+          } else if (nombre === 'Trabajador' || nombre === 'Activo') {
             where = { unidadOrganizativa: { organizacionId: id } };
-          else if (nombre === 'AsignacionRaci')
+          } else if (nombre === 'AsignacionRaci') {
             where = { proceso: { organizacionId: id } };
-          else if (nombre === 'HitoPlan')
+          } else if (nombre === 'HitoPlan') {
             where = { plan: { organizacionId: id } };
-          else if (nombre === 'AccionIncidente')
+          } else if (nombre === 'AccionIncidente') {
             where = {
               incidente: {
                 activo: { unidadOrganizativa: { organizacionId: id } },
               },
             };
-          else
+          } else {
             where = { activo: { unidadOrganizativa: { organizacionId: id } } };
+          }
           const filas = await delegado(tx, nombre).findMany({
             where,
             orderBy: { id: 'asc' },
@@ -69,9 +74,11 @@ export class DatosService {
           datos[modulo] = filas.map((f) => {
             const fila = { ...f };
             if (nombre === 'Activo') {
-              fila.procesoIds = (fila.procesos as { id: string }[]).map(
-                (p) => p.id,
-              );
+              fila.procesoIds = (
+                fila.procesos as {
+                  id: string;
+                }[]
+              ).map((p) => p.id);
               delete fila.procesos;
             }
             // El histórico se conserva sin transportar identidades de cuentas del sistema origen.

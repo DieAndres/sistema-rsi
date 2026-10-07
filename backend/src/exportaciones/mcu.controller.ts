@@ -1,3 +1,4 @@
+import type { RequestConUsuario } from '../auth/usuario-autenticado';
 import {
   Body,
   Controller,
@@ -15,23 +16,22 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @Controller('exportaciones/organizaciones/:id')
 export class McuController {
   constructor(private readonly mcu: McuService) {}
-  private alcance(
-    id: string,
-    request: Request & {
-      user?: { rol?: string; organizacionId?: string | null };
-    },
-  ) {
+
+  private alcance(id: string, request: RequestConUsuario) {
     if (
       ['LECTOR', 'DUENO_UNIDAD'].includes(request.user?.rol ?? '') &&
       request.user?.organizacionId !== id
-    )
+    ) {
       throw new ForbiddenException('No tenés permisos sobre esa organización.');
+    }
   }
+
   @Get('mcu-controles')
   listar(@Param('id') id: string, @Req() request: Request) {
     this.alcance(id, request);
     return this.mcu.listar(id);
   }
+
   @Put('mcu-controles/:controlId')
   @Roles('ADMINISTRADOR', 'RSI')
   guardar(
@@ -43,6 +43,7 @@ export class McuController {
     this.alcance(id, request);
     return this.mcu.guardar(id, controlId, datos);
   }
+
   @Get('mcu-funciones')
   async exportar(
     @Param('id') id: string,

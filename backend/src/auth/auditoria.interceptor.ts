@@ -8,7 +8,6 @@ import { Prisma } from '@prisma/client';
 import { Request } from 'express';
 import { from, lastValueFrom } from 'rxjs';
 import { PrismaService, transaccionAuditoria } from '../prisma/prisma.service';
-
 export const ENTIDADES_AUDITABLES = {
   ORGANIZACION: 'organizacion',
   UNIDAD: 'unidadOrganizativa',
@@ -32,7 +31,6 @@ export const ENTIDADES_AUDITABLES = {
   EVALUACION_BCU: 'evaluacionBcu',
   EVALUACION_COBIT: 'evaluacionCobit',
 } as const;
-
 const recursos: Record<string, keyof typeof ENTIDADES_AUDITABLES> = {
   unidades: 'UNIDAD',
   trabajadores: 'TRABAJADOR',
@@ -55,13 +53,14 @@ const recursos: Record<string, keyof typeof ENTIDADES_AUDITABLES> = {
   'bcu-controles': 'EVALUACION_BCU',
   'cobit-procesos': 'EVALUACION_COBIT',
 };
-
 // Solo campos escalares persistidos: excluye relaciones, respuestas calculadas y cuerpos enviados.
 function valores(
   entidad: keyof typeof ENTIDADES_AUDITABLES,
   registro: unknown,
 ) {
-  if (!registro || typeof registro !== 'object') return null;
+  if (!registro || typeof registro !== 'object') {
+    return null;
+  }
   const nombre = ENTIDADES_AUDITABLES[entidad];
   const modelo = Prisma.dmmf.datamodel.models.find(
     (m) => m.name.toLowerCase() === nombre.toLowerCase(),
@@ -74,7 +73,11 @@ function valores(
     campos.filter((c) => c in datos).map((c) => [c, datos[c]]),
   );
   if (entidad === 'ACTIVO' && Array.isArray(datos.procesos)) {
-    resultado.procesoIds = (datos.procesos as { id: string }[])
+    resultado.procesoIds = (
+      datos.procesos as {
+        id: string;
+      }[]
+    )
       .map((p) => p.id)
       .sort();
   }
@@ -89,9 +92,13 @@ export class AuditoriaInterceptor implements NestInterceptor {
   constructor(private readonly prisma: PrismaService) {}
 
   intercept(context: ExecutionContext, next: CallHandler) {
-    const request = context
-      .switchToHttp()
-      .getRequest<Request & { user?: { id: string } }>();
+    const request = context.switchToHttp().getRequest<
+      Request & {
+        user?: {
+          id: string;
+        };
+      }
+    >();
     const partes = request.path.split('/').filter(Boolean).slice(2);
     const modulo = partes[0];
     if (
@@ -103,8 +110,9 @@ export class AuditoriaInterceptor implements NestInterceptor {
         'kpis',
         'exportaciones',
       ].includes(modulo)
-    )
+    ) {
       return next.handle();
+    }
     const exportacion =
       modulo === 'exportaciones' &&
       request.method === 'GET' &&
@@ -120,22 +128,23 @@ export class AuditoriaInterceptor implements NestInterceptor {
     if (
       !exportacion &&
       !['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method)
-    )
+    ) {
       return next.handle();
+    }
     const recurso = partes
       .slice(1)
       .filter((p) => p in recursos)
       .at(-1);
     const entidad = recurso ? recursos[recurso] : 'ORGANIZACION';
-    const accion = exportacion
-      ? 'EXPORT'
-      : request.method === 'DELETE'
-        ? 'DELETE'
-        : request.method === 'POST'
-          ? 'CREATE'
-          : 'UPDATE';
+    let accion = 'UPDATE';
+    if (exportacion) {
+      accion = 'EXPORT';
+    } else if (request.method === 'DELETE') {
+      accion = 'DELETE';
+    } else if (request.method === 'POST') {
+      accion = 'CREATE';
+    }
     const actorUserId = request.user.id;
-
     return from(
       this.prisma.$transaction(
         async (tx) =>
@@ -143,37 +152,41 @@ export class AuditoriaInterceptor implements NestInterceptor {
             const modelo = tx[ENTIDADES_AUDITABLES[entidad]] as unknown as {
               findUnique(args: {
                 where: Record<string, unknown>;
-                include?: { procesos: boolean };
+                include?: {
+                  procesos: boolean;
+                };
               }): Promise<unknown>;
             };
             let anterior: unknown = null;
             if (!exportacion && accion !== 'CREATE') {
-              const where =
-                entidad === 'EVALUACION_COBIT'
-                  ? {
-                      organizacionId_procesoId_controlId: {
-                        organizacionId: request.params.id,
-                        procesoId: request.body?.procesoId,
-                        controlId: request.params.controlId,
-                      },
-                    }
-                  : entidad === 'EVALUACION_SOA' ||
-                      entidad === 'EVALUACION_MCU' ||
-                      entidad === 'EVALUACION_BCU'
-                    ? {
-                        organizacionId_controlId: {
-                          organizacionId: request.params.id,
-                          controlId: request.params.controlId,
-                        },
-                      }
-                    : entidad === 'BRECHA_MCU'
-                      ? {
-                          organizacionId_funcion: {
-                            organizacionId: request.params.id,
-                            funcion: request.params.funcion,
-                          },
-                        }
-                      : { id: request.params.id };
+              let where: Record<string, unknown> = { id: request.params.id };
+              if (entidad === 'EVALUACION_COBIT') {
+                where = {
+                  organizacionId_procesoId_controlId: {
+                    organizacionId: request.params.id,
+                    procesoId: request.body?.procesoId,
+                    controlId: request.params.controlId,
+                  },
+                };
+              } else if (
+                entidad === 'EVALUACION_SOA' ||
+                entidad === 'EVALUACION_MCU' ||
+                entidad === 'EVALUACION_BCU'
+              ) {
+                where = {
+                  organizacionId_controlId: {
+                    organizacionId: request.params.id,
+                    controlId: request.params.controlId,
+                  },
+                };
+              } else if (entidad === 'BRECHA_MCU') {
+                where = {
+                  organizacionId_funcion: {
+                    organizacionId: request.params.id,
+                    funcion: request.params.funcion,
+                  },
+                };
+              }
               anterior = await modelo.findUnique({
                 where,
                 ...(entidad === 'ACTIVO' && { include: { procesos: true } }),
@@ -196,17 +209,27 @@ export class AuditoriaInterceptor implements NestInterceptor {
                 JSON.stringify(despues?.[campo]),
             );
             const id =
-              (respuesta as { id?: string } | null)?.id ??
-              (anterior as { id?: string } | null)?.id ??
+              (
+                respuesta as {
+                  id?: string;
+                } | null
+              )?.id ??
+              (
+                anterior as {
+                  id?: string;
+                } | null
+              )?.id ??
               request.params.id;
-            const accionFinal =
-              accion === 'UPDATE' && !anterior
-                ? 'CREATE'
-                : accion === 'UPDATE' &&
-                    antes?.estado !== despues?.estado &&
-                    despues?.estado === 'APROBADA'
-                  ? 'APPROVE'
-                  : accion;
+            let accionFinal = accion;
+            if (accion === 'UPDATE' && !anterior) {
+              accionFinal = 'CREATE';
+            } else if (
+              accion === 'UPDATE' &&
+              antes?.estado !== despues?.estado &&
+              despues?.estado === 'APROBADA'
+            ) {
+              accionFinal = 'APPROVE';
+            }
             await tx.auditEvent.create({
               data: {
                 eventType: `${exportacion ? 'EXPORTACION' : entidad}_${accionFinal}`,

@@ -13,7 +13,6 @@ import { generateSecret, generateURI } from 'otplib';
 import { verificarTotp } from './totp';
 import { hashPassword, verifyPassword } from './password';
 import { ENTIDADES_AUDITABLES } from './auditoria.interceptor';
-
 const ROLES = new Set(['ADMINISTRADOR', 'RSI', 'DUENO_UNIDAD', 'LECTOR']);
 const ROLES_CON_TRABAJADOR = new Set(['DUENO_UNIDAD', 'LECTOR']);
 
@@ -23,24 +22,28 @@ export class AuthService {
 
   async registrar(datos: CrearUsuarioDto) {
     const correo = datos.correo?.trim().toLowerCase();
-    if (!correo || !/^\S+@\S+\.\S+$/.test(correo))
+    if (!correo || !/^\S+@\S+\.\S+$/.test(correo)) {
       throw new UnauthorizedException('El correo no es válido.');
+    }
     this.validarPassword(datos.password);
     const rol = datos.rol ?? 'LECTOR';
-    if (!ROLES.has(rol))
+    if (!ROLES.has(rol)) {
       throw new UnauthorizedException('El rol no es válido.');
+    }
     await this.validarRelacionTrabajador(rol, datos.trabajadorId);
     await this.validarTrabajadorSinUsuario(datos.trabajadorId);
     const algoritmo = datos.algoritmo ?? 'argon2';
-    if (!['argon2', 'bcrypt'].includes(algoritmo))
+    if (!['argon2', 'bcrypt'].includes(algoritmo)) {
       throw new BadRequestException('Algoritmo de contraseña no válido.');
+    }
     if (
       algoritmo === 'bcrypt' &&
       Buffer.byteLength(datos.password, 'utf8') > 72
-    )
+    ) {
       throw new BadRequestException(
         'bcrypt admite hasta 72 bytes por contraseña.',
       );
+    }
     return this.prisma.usuario.create({
       data: {
         correo,
@@ -64,8 +67,9 @@ export class AuthService {
       typeof datos?.password !== 'string' ||
       datos.correo.length > 320 ||
       datos.password.length > 1024
-    )
+    ) {
       throw new UnauthorizedException('Correo o contraseña incorrectos.');
+    }
     const usuario = await this.prisma.usuario.findUnique({
       where: { correo: datos.correo?.trim().toLowerCase() },
     });
@@ -115,9 +119,12 @@ export class AuthService {
     const usuario = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
     });
-    if (!usuario) throw new NotFoundException('Usuario no encontrado.');
-    if (usuario.mfaConfirmado)
+    if (!usuario) {
+      throw new NotFoundException('Usuario no encontrado.');
+    }
+    if (usuario.mfaConfirmado) {
       throw new BadRequestException('MFA ya está activado.');
+    }
     if (!usuario.mfaSecret) {
       // La condición evita que solicitudes simultáneas creen dos QR diferentes.
       await this.prisma.usuario.updateMany({
@@ -128,10 +135,11 @@ export class AuthService {
     const pendiente = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
     });
-    if (!pendiente?.mfaSecret || pendiente.mfaConfirmado)
+    if (!pendiente?.mfaSecret || pendiente.mfaConfirmado) {
       throw new BadRequestException(
         'La configuración MFA cambió. Recargá la página.',
       );
+    }
     const secret = pendiente.mfaSecret;
     return {
       secret,
@@ -157,10 +165,11 @@ export class AuthService {
       where: { id: usuarioId, mfaSecret: usuario.mfaSecret },
       data: { mfaConfirmado: true },
     });
-    if (!activacion.count)
+    if (!activacion.count) {
       throw new UnauthorizedException(
         'La configuración MFA cambió. Escaneá el QR actual.',
       );
+    }
     await this.registrarAuditoria(
       'MFA_ENABLED',
       usuarioId,
@@ -185,7 +194,11 @@ export class AuthService {
   }
 
   async listarAuditoria(
-    filtros: { entidad?: string; usuarioId?: string; pagina?: string } = {},
+    filtros: {
+      entidad?: string;
+      usuarioId?: string;
+      pagina?: string;
+    } = {},
   ) {
     const { entidad, usuarioId } = filtros;
     const pagina = Number(filtros.pagina ?? 1);
@@ -194,17 +207,20 @@ export class AuthService {
       !['AUTH', 'EXPORTACION', ...Object.keys(ENTIDADES_AUDITABLES)].includes(
         entidad,
       )
-    )
+    ) {
       throw new BadRequestException('Entidad de auditoría inválida.');
+    }
     if (
       usuarioId &&
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
         usuarioId,
       )
-    )
+    ) {
       throw new BadRequestException('Usuario de auditoría inválido.');
-    if (!Number.isSafeInteger(pagina) || pagina < 1 || pagina > 1000000)
+    }
+    if (!Number.isSafeInteger(pagina) || pagina < 1 || pagina > 1000000) {
       throw new BadRequestException('Página de auditoría inválida.');
+    }
     const where = {
       ...(entidad && { entityType: entidad }),
       ...(usuarioId && { actorUserId: usuarioId }),
@@ -228,7 +244,9 @@ export class AuthService {
     actorUserId: string,
   ) {
     const existente = await this.prisma.usuario.findUnique({ where: { id } });
-    if (!existente) throw new NotFoundException('Usuario no encontrado.');
+    if (!existente) {
+      throw new NotFoundException('Usuario no encontrado.');
+    }
     if (datos.rol !== undefined && !ROLES.has(datos.rol)) {
       throw new UnauthorizedException('El rol no es válido.');
     }
@@ -307,8 +325,9 @@ export class AuthService {
         },
       },
     });
-    if (!sesion || sesion.expiraEn <= new Date() || !sesion.usuario.activo)
+    if (!sesion || sesion.expiraEn <= new Date() || !sesion.usuario.activo) {
       throw new UnauthorizedException('La sesión no es válida.');
+    }
     return {
       id: sesion.usuario.id,
       correo: sesion.usuario.correo,
@@ -343,10 +362,11 @@ export class AuthService {
       typeof password !== 'string' ||
       password.length < 12 ||
       password.length > 1024
-    )
+    ) {
       throw new UnauthorizedException(
         'La contraseña debe tener entre 12 y 1024 caracteres.',
       );
+    }
   }
 
   private async validarRelacionTrabajador(rol: string, trabajadorId?: string) {
@@ -370,7 +390,9 @@ export class AuthService {
     trabajadorId?: string,
     usuarioId?: string,
   ) {
-    if (!trabajadorId) return;
+    if (!trabajadorId) {
+      return;
+    }
     const existente = await this.prisma.usuario.findFirst({
       where: { trabajadorId, ...(usuarioId ? { NOT: { id: usuarioId } } : {}) },
       select: { id: true },

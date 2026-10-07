@@ -1,3 +1,4 @@
+import type { RequestConUsuario } from '../auth/usuario-autenticado';
 import {
   Body,
   Controller,
@@ -15,23 +16,22 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @Controller('exportaciones/organizaciones/:id')
 export class BcuController {
   constructor(private readonly bcu: BcuService) {}
-  private alcance(
-    id: string,
-    request: Request & {
-      user?: { rol?: string; organizacionId?: string | null };
-    },
-  ) {
+
+  private alcance(id: string, request: RequestConUsuario) {
     if (
       ['LECTOR', 'DUENO_UNIDAD'].includes(request.user?.rol ?? '') &&
       request.user?.organizacionId !== id
-    )
+    ) {
       throw new ForbiddenException('No tenés permisos sobre esa organización.');
+    }
   }
+
   @Get('bcu-controles')
   listar(@Param('id') id: string, @Req() request: Request) {
     this.alcance(id, request);
     return this.bcu.listar(id);
   }
+
   @Put('bcu-controles/:controlId')
   @Roles('ADMINISTRADOR', 'RSI')
   guardar(
@@ -43,6 +43,7 @@ export class BcuController {
     this.alcance(id, request);
     return this.bcu.guardar(id, controlId, datos);
   }
+
   @Get('bcu-gsi')
   async exportar(
     @Param('id') id: string,

@@ -16,11 +16,14 @@ export class RolesGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (!roles?.length) return true;
-
-    const request = context
-      .switchToHttp()
-      .getRequest<{ user?: { rol?: string } }>();
+    if (!roles?.length) {
+      return true;
+    }
+    const request = context.switchToHttp().getRequest<{
+      user?: {
+        rol?: string;
+      };
+    }>();
     if (!request.user?.rol || !roles.includes(request.user.rol)) {
       throw new ForbiddenException(
         'No tenés permisos para realizar esta operación.',

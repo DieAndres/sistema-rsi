@@ -1,3 +1,4 @@
+import type { RequestConUsuario } from '../auth/usuario-autenticado';
 import {
   Body,
   Controller,
@@ -9,7 +10,6 @@ import {
   Post,
   Req,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { ActualizarOrganizacionDto } from './dto/organizacion/actualizar-organizacion.dto';
 import { ActualizarUnidadOrganizativaDto } from './dto/unidad-organizativa/actualizar-unidad-organizativa.dto';
 import { CrearOrganizacionDto } from './dto/organizacion/crear-organizacion.dto';
@@ -52,19 +52,18 @@ export class OrganizacionController {
   @Get(':id/mapa')
   async consultarMapa(@Param('id') id: string) {
     const organizacion = await this.organizacionService.consultarMapa(id);
-    if (!organizacion)
+    if (!organizacion) {
       throw new NotFoundException('Organización no encontrada');
+    }
     return organizacion;
   }
 
   @Get('unidades/:id')
   async consultarUnidad(@Param('id') id: string) {
     const unidad = await this.organizacionService.consultarUnidad(id);
-
     if (!unidad) {
       throw new NotFoundException('Unidad organizativa no encontrada');
     }
-
     return unidad;
   }
 
@@ -74,22 +73,18 @@ export class OrganizacionController {
     @Body() datos: ActualizarUnidadOrganizativaDto,
   ) {
     const unidad = await this.organizacionService.actualizarUnidad(id, datos);
-
     if (!unidad) {
       throw new NotFoundException('Unidad organizativa no encontrada');
     }
-
     return unidad;
   }
 
   @Delete('unidades/:id')
   async eliminarUnidad(@Param('id') id: string) {
     const eliminada = await this.organizacionService.eliminarUnidad(id);
-
     if (!eliminada) {
       throw new NotFoundException('Unidad organizativa no encontrada');
     }
-
     return eliminada;
   }
 
@@ -102,12 +97,7 @@ export class OrganizacionController {
   }
 
   @Get('trabajadores')
-  listarTrabajadores(
-    @Req()
-    request: Request & {
-      user?: { rol?: string; unidadOrganizativaId?: string | null };
-    },
-  ) {
+  listarTrabajadores(@Req() request: RequestConUsuario) {
     const unidadId = ['DUENO_UNIDAD', 'LECTOR'].includes(
       request.user?.rol ?? '',
     )
@@ -119,11 +109,9 @@ export class OrganizacionController {
   @Get('trabajadores/:id')
   async consultarTrabajador(@Param('id') id: string) {
     const trabajador = await this.organizacionService.consultarTrabajador(id);
-
     if (!trabajador) {
       throw new NotFoundException('Trabajador no encontrado');
     }
-
     return trabajador;
   }
 
@@ -136,22 +124,18 @@ export class OrganizacionController {
       id,
       datos,
     );
-
     if (!trabajador) {
       throw new NotFoundException('Trabajador no encontrado');
     }
-
     return trabajador;
   }
 
   @Delete('trabajadores/:id')
   async eliminarTrabajador(@Param('id') id: string) {
     const eliminado = await this.organizacionService.eliminarTrabajador(id);
-
     if (!eliminado) {
       throw new NotFoundException('Trabajador no encontrado');
     }
-
     return eliminado;
   }
 
@@ -169,12 +153,7 @@ export class OrganizacionController {
   }
 
   @Get('procesos')
-  listarProcesos(
-    @Req()
-    request: Request & {
-      user?: { rol?: string; organizacionId?: string | null };
-    },
-  ) {
+  listarProcesos(@Req() request: RequestConUsuario) {
     const organizacionId = ['DUENO_UNIDAD', 'LECTOR'].includes(
       request.user?.rol ?? '',
     )
@@ -186,11 +165,9 @@ export class OrganizacionController {
   @Get('procesos/:id')
   async consultarProceso(@Param('id') id: string) {
     const proceso = await this.organizacionService.consultarProceso(id);
-
     if (!proceso) {
       throw new NotFoundException('Proceso no encontrado');
     }
-
     return proceso;
   }
 
@@ -200,22 +177,18 @@ export class OrganizacionController {
     @Body() datos: ActualizarProcesoDto,
   ) {
     const proceso = await this.organizacionService.actualizarProceso(id, datos);
-
     if (!proceso) {
       throw new NotFoundException('Proceso no encontrado');
     }
-
     return proceso;
   }
 
   @Delete('procesos/:id')
   async eliminarProceso(@Param('id') id: string) {
     const proceso = await this.organizacionService.eliminarProceso(id);
-
     if (!proceso) {
       throw new NotFoundException('Proceso no encontrado');
     }
-
     return proceso;
   }
 
@@ -233,11 +206,9 @@ export class OrganizacionController {
   async consultarAsignacionRaci(@Param('id') id: string) {
     const asignacion =
       await this.organizacionService.consultarAsignacionRaci(id);
-
     if (!asignacion) {
       throw new NotFoundException('Asignación RACI no encontrada');
     }
-
     return asignacion;
   }
 
@@ -250,11 +221,9 @@ export class OrganizacionController {
       id,
       datos,
     );
-
     if (!asignacion) {
       throw new NotFoundException('Asignación RACI no encontrada');
     }
-
     return asignacion;
   }
 
@@ -262,19 +231,18 @@ export class OrganizacionController {
   async eliminarAsignacionRaci(@Param('id') id: string) {
     const asignacion =
       await this.organizacionService.eliminarAsignacionRaci(id);
-
     if (!asignacion) {
       throw new NotFoundException('Asignación RACI no encontrada');
     }
-
     return asignacion;
   }
 
   @Get(':id')
   async consultar(@Param('id') id: string) {
     const organizacion = await this.organizacionService.consultar(id);
-    if (!organizacion)
+    if (!organizacion) {
       throw new NotFoundException('Organización no encontrada');
+    }
     return organizacion;
   }
 
@@ -284,8 +252,9 @@ export class OrganizacionController {
     @Body() datos: ActualizarOrganizacionDto,
   ) {
     const organizacion = await this.organizacionService.actualizar(id, datos);
-    if (!organizacion)
+    if (!organizacion) {
       throw new NotFoundException('Organización no encontrada');
+    }
     return organizacion;
   }
 }

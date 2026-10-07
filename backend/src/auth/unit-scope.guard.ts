@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
-
 type UsuarioConAlcance = {
   rol?: string;
   organizacionId?: string | null;
@@ -18,13 +17,15 @@ export class UnitScopeGuard implements CanActivate {
   constructor(private readonly prisma: PrismaService) {}
 
   async canActivate(context: ExecutionContext) {
-    const request = context
-      .switchToHttp()
-      .getRequest<Request & { user?: UsuarioConAlcance }>();
+    const request = context.switchToHttp().getRequest<
+      Request & {
+        user?: UsuarioConAlcance;
+      }
+    >();
     const usuario = request.user;
-    if (!usuario || !['DUENO_UNIDAD', 'LECTOR'].includes(usuario.rol ?? ''))
+    if (!usuario || !['DUENO_UNIDAD', 'LECTOR'].includes(usuario.rol ?? '')) {
       return true;
-
+    }
     const body = request.body as Record<string, unknown> | undefined;
     const organizacionIds = [
       request.params.organizacionId,
@@ -46,10 +47,11 @@ export class UnitScopeGuard implements CanActivate {
       (valor) =>
         typeof valor === 'string' && valor !== usuario.unidadOrganizativaId,
     );
-    if (tieneOrganizacionAjena || tieneUnidadAjena)
+    if (tieneOrganizacionAjena || tieneUnidadAjena) {
       throw new ForbiddenException(
         'No tenés permisos sobre ese alcance organizativo.',
       );
+    }
     await this.validarRegistro(context, usuario);
     return true;
   }
@@ -62,13 +64,14 @@ export class UnitScopeGuard implements CanActivate {
     const rawId =
       request.params.id ?? request.params.trabajadorId ?? request.params.planId;
     const id = Array.isArray(rawId) ? rawId[0] : rawId;
-    if (!id) return;
+    if (!id) {
+      return;
+    }
     const ruta = request.path;
     let alcance: {
       unidadOrganizativaId?: string | null;
       organizacionId?: string | null;
     } | null = null;
-
     if (ruta.includes('/trabajadores/')) {
       alcance = await this.prisma.trabajador.findUnique({
         where: { id },
@@ -85,21 +88,21 @@ export class UnitScopeGuard implements CanActivate {
           where: { id },
           include: { activo: { select: { unidadOrganizativaId: true } } },
         })
-        .then((x) => x?.activo ?? null);
+        .then((registro) => registro?.activo ?? null);
     } else if (ruta.includes('/riesgos/')) {
       alcance = await this.prisma.riesgo
         .findUnique({
           where: { id },
           include: { activo: { select: { unidadOrganizativaId: true } } },
         })
-        .then((x) => x?.activo ?? null);
+        .then((registro) => registro?.activo ?? null);
     } else if (ruta.includes('/incidentes/')) {
       alcance = await this.prisma.incidente
         .findUnique({
           where: { id },
           include: { activo: { select: { unidadOrganizativaId: true } } },
         })
-        .then((x) => x?.activo ?? null);
+        .then((registro) => registro?.activo ?? null);
     } else if (ruta.includes('/politicas/')) {
       alcance = await this.prisma.politica.findUnique({
         where: { id },
@@ -121,7 +124,6 @@ export class UnitScopeGuard implements CanActivate {
         select: { organizacionId: true },
       });
     }
-
     if (
       alcance?.unidadOrganizativaId &&
       alcance.unidadOrganizativaId !== usuario.unidadOrganizativaId

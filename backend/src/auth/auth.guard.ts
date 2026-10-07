@@ -8,8 +8,9 @@ import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { IS_PUBLIC_KEY } from './decorators/public.decorator';
-
-type RequestWithUser = Request & { user?: Record<string, unknown> };
+type RequestWithUser = Request & {
+  user?: Record<string, unknown>;
+};
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -23,17 +24,22 @@ export class AuthGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (isPublic) return true;
-
+    if (isPublic) {
+      return true;
+    }
     const request = context.switchToHttp().getRequest<RequestWithUser>();
     const authorization = request.headers.authorization;
     const token = authorization?.startsWith('Bearer ')
       ? authorization.slice(7)
       : '';
-    if (!token) throw new UnauthorizedException('Se requiere autenticación.');
-
+    if (!token) {
+      throw new UnauthorizedException('Se requiere autenticación.');
+    }
     request.user = await this.auth.obtenerPorToken(token);
-    const user = request.user as { rol?: string; mfaConfirmado?: boolean };
+    const user = request.user as {
+      rol?: string;
+      mfaConfirmado?: boolean;
+    };
     const permiteConfiguracionMfa =
       request.path.endsWith('/auth/mfa/setup') ||
       request.path.endsWith('/auth/mfa/confirm') ||

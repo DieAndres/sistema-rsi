@@ -1,3 +1,7 @@
+import type {
+  RequestConUsuario,
+  RequestAutenticada,
+} from '../auth/usuario-autenticado';
 import {
   Body,
   Controller,
@@ -10,7 +14,6 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { SeguridadService } from './seguridad.service';
 import { CrearActivoDto } from './dto/activo/crear-activo.dto';
 import { ActualizarActivoDto } from './dto/activo/actualizar-activo.dto';
@@ -25,19 +28,18 @@ import { ActualizarIncidenteDto } from './dto/incidente/actualizar-incidente.dto
 export class SeguridadController {
   constructor(private readonly service: SeguridadService) {}
 
-  @Post('unidades/:unidadId/activos') crearActivo(
-    @Param('unidadId') id: string,
-    @Body() d: CrearActivoDto,
+  @Post('unidades/:unidadId/activos')
+  crearActivo(
+    @Param('unidadId') unidadId: string,
+    @Body() datos: CrearActivoDto,
   ) {
-    return this.service.crearActivo(id, d);
+    return this.service.crearActivo(unidadId, datos);
   }
 
-  @Get('activos') listarActivos(
+  @Get('activos')
+  listarActivos(
     @Query('unidadId') unidadId: string | undefined,
-    @Req()
-    request?: Request & {
-      user?: { rol?: string; unidadOrganizativaId?: string | null };
-    },
+    @Req() request?: RequestConUsuario,
   ) {
     const unidadAlcance = ['DUENO_UNIDAD', 'LECTOR'].includes(
       request?.user?.rol ?? '',
@@ -47,36 +49,38 @@ export class SeguridadController {
     return this.service.listarActivos(unidadAlcance);
   }
 
-  @Get('activos/:id') async consultarActivo(@Param('id') id: string) {
-    const x = await this.service.consultarActivo(id);
-    if (!x) throw new NotFoundException('Activo no encontrado');
-    return x;
+  @Get('activos/:id')
+  async consultarActivo(@Param('id') id: string) {
+    const activo = await this.service.consultarActivo(id);
+    if (!activo) {
+      throw new NotFoundException('Activo no encontrado');
+    }
+    return activo;
   }
 
-  @Patch('activos/:id') actualizarActivo(
+  @Patch('activos/:id')
+  actualizarActivo(
     @Param('id') id: string,
-    @Body() d: ActualizarActivoDto,
+    @Body() datos: ActualizarActivoDto,
   ) {
-    return this.service.actualizarActivo(id, d);
+    return this.service.actualizarActivo(id, datos);
   }
 
-  @Delete('activos/:id') eliminarActivo(@Param('id') id: string) {
+  @Delete('activos/:id')
+  eliminarActivo(@Param('id') id: string) {
     return this.service.eliminarActivo(id);
   }
 
-  @Post('vulnerabilidades') crearVulnerabilidad(
-    @Body() d: CrearVulnerabilidadDto,
-  ) {
-    return this.service.crearVulnerabilidad(d);
+  @Post('vulnerabilidades')
+  crearVulnerabilidad(@Body() datos: CrearVulnerabilidadDto) {
+    return this.service.crearVulnerabilidad(datos);
   }
 
-  @Get('vulnerabilidades') listarVulnerabilidades(
+  @Get('vulnerabilidades')
+  listarVulnerabilidades(
     @Query('estado') estado?: string,
     @Query('cvssMin') cvssMin?: string,
-    @Req()
-    request?: Request & {
-      user?: { rol?: string; unidadOrganizativaId?: string | null };
-    },
+    @Req() request?: RequestConUsuario,
   ) {
     const unidadId = ['DUENO_UNIDAD', 'LECTOR'].includes(
       request?.user?.rol ?? '',
@@ -86,35 +90,33 @@ export class SeguridadController {
     return this.service.listarVulnerabilidades(estado, cvssMin, unidadId);
   }
 
-  @Get('vulnerabilidades/:id') consultarVulnerabilidad(
-    @Param('id') id: string,
-  ) {
+  @Get('vulnerabilidades/:id')
+  consultarVulnerabilidad(@Param('id') id: string) {
     return this.service.consultarVulnerabilidad(id);
   }
 
-  @Patch('vulnerabilidades/:id') actualizarVulnerabilidad(
+  @Patch('vulnerabilidades/:id')
+  actualizarVulnerabilidad(
     @Param('id') id: string,
-    @Body() d: ActualizarVulnerabilidadDto,
+    @Body() datos: ActualizarVulnerabilidadDto,
   ) {
-    return this.service.actualizarVulnerabilidad(id, d);
+    return this.service.actualizarVulnerabilidad(id, datos);
   }
 
-  @Delete('vulnerabilidades/:id') eliminarVulnerabilidad(
-    @Param('id') id: string,
-  ) {
+  @Delete('vulnerabilidades/:id')
+  eliminarVulnerabilidad(@Param('id') id: string) {
     return this.service.eliminarVulnerabilidad(id);
   }
 
-  @Post('riesgos') crearRiesgo(@Body() d: CrearRiesgoDto) {
-    return this.service.crearRiesgo(d);
+  @Post('riesgos')
+  crearRiesgo(@Body() datos: CrearRiesgoDto) {
+    return this.service.crearRiesgo(datos);
   }
 
-  @Get('riesgos') listarRiesgos(
+  @Get('riesgos')
+  listarRiesgos(
     @Query('estado') estado?: string,
-    @Req()
-    request?: Request & {
-      user?: { rol?: string; unidadOrganizativaId?: string | null };
-    },
+    @Req() request?: RequestConUsuario,
   ) {
     const unidadId = ['DUENO_UNIDAD', 'LECTOR'].includes(
       request?.user?.rol ?? '',
@@ -124,35 +126,37 @@ export class SeguridadController {
     return this.service.listarRiesgos(estado, unidadId);
   }
 
-  @Get('riesgos/:id') consultarRiesgo(@Param('id') id: string) {
+  @Get('riesgos/:id')
+  consultarRiesgo(@Param('id') id: string) {
     return this.service.consultarRiesgo(id);
   }
 
-  @Patch('riesgos/:id') actualizarRiesgo(
+  @Patch('riesgos/:id')
+  actualizarRiesgo(
     @Param('id') id: string,
-    @Body() d: ActualizarRiesgoDto,
+    @Body() datos: ActualizarRiesgoDto,
   ) {
-    return this.service.actualizarRiesgo(id, d);
+    return this.service.actualizarRiesgo(id, datos);
   }
 
-  @Delete('riesgos/:id') eliminarRiesgo(@Param('id') id: string) {
+  @Delete('riesgos/:id')
+  eliminarRiesgo(@Param('id') id: string) {
     return this.service.eliminarRiesgo(id);
   }
 
-  @Post('incidentes') crearIncidente(
-    @Body() d: CrearIncidenteDto,
-    @Req() req: Request & { user: { id: string; correo: string } },
+  @Post('incidentes')
+  crearIncidente(
+    @Body() datos: CrearIncidenteDto,
+    @Req() req: RequestAutenticada,
   ) {
-    return this.service.crearIncidente(d, req.user);
+    return this.service.crearIncidente(datos, req.user);
   }
 
-  @Get('incidentes') listarIncidentes(
+  @Get('incidentes')
+  listarIncidentes(
     @Query('estado') estado?: string,
     @Query('severidad') severidad?: string,
-    @Req()
-    request?: Request & {
-      user?: { rol?: string; unidadOrganizativaId?: string | null };
-    },
+    @Req() request?: RequestConUsuario,
   ) {
     const unidadId = ['DUENO_UNIDAD', 'LECTOR'].includes(
       request?.user?.rol ?? '',
@@ -162,19 +166,22 @@ export class SeguridadController {
     return this.service.listarIncidentes(estado, severidad, unidadId);
   }
 
-  @Get('incidentes/:id') consultarIncidente(@Param('id') id: string) {
+  @Get('incidentes/:id')
+  consultarIncidente(@Param('id') id: string) {
     return this.service.consultarIncidente(id);
   }
 
-  @Patch('incidentes/:id') actualizarIncidente(
+  @Patch('incidentes/:id')
+  actualizarIncidente(
     @Param('id') id: string,
-    @Body() d: ActualizarIncidenteDto,
-    @Req() req: Request & { user: { id: string; correo: string } },
+    @Body() datos: ActualizarIncidenteDto,
+    @Req() req: RequestAutenticada,
   ) {
-    return this.service.actualizarIncidente(id, d, req.user);
+    return this.service.actualizarIncidente(id, datos, req.user);
   }
 
-  @Delete('incidentes/:id') eliminarIncidente(@Param('id') id: string) {
+  @Delete('incidentes/:id')
+  eliminarIncidente(@Param('id') id: string) {
     return this.service.eliminarIncidente(id);
   }
 }

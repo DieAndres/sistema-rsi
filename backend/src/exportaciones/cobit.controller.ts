@@ -1,3 +1,4 @@
+import type { RequestConUsuario } from '../auth/usuario-autenticado';
 import {
   Body,
   Controller,
@@ -15,23 +16,22 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @Controller('exportaciones/organizaciones/:id')
 export class CobitController {
   constructor(private readonly cobit: CobitService) {}
-  private alcance(
-    id: string,
-    request: Request & {
-      user?: { rol?: string; organizacionId?: string | null };
-    },
-  ) {
+
+  private alcance(id: string, request: RequestConUsuario) {
     if (
       ['LECTOR', 'DUENO_UNIDAD'].includes(request.user?.rol ?? '') &&
       request.user?.organizacionId !== id
-    )
+    ) {
       throw new ForbiddenException('No tenés permisos sobre esa organización.');
+    }
   }
+
   @Get('cobit-procesos')
   listar(@Param('id') id: string, @Req() request: Request) {
     this.alcance(id, request);
     return this.cobit.listar(id);
   }
+
   @Put('cobit-procesos/:controlId')
   @Roles('ADMINISTRADOR', 'RSI')
   guardar(
@@ -43,6 +43,7 @@ export class CobitController {
     this.alcance(id, request);
     return this.cobit.guardar(id, controlId, datos);
   }
+
   @Get('cobit')
   async exportar(
     @Param('id') id: string,

@@ -1,4 +1,4 @@
-import { OrganizacionService } from './organizacion.service';
+import { CumplimientoService } from './cumplimiento.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 it('actualiza el plan, permite quitar relaciones y rechaza riesgos ajenos', async () => {
@@ -11,7 +11,7 @@ it('actualiza el plan, permite quitar relaciones y rechaza riesgos ajenos', asyn
     },
     riesgo: { findUnique: jest.fn() },
   };
-  const servicio = new OrganizacionService(prisma as unknown as PrismaService);
+  const servicio = new CumplimientoService(prisma as unknown as PrismaService);
   prisma.riesgo.findUnique.mockResolvedValue({
     activo: { unidadOrganizativa: { organizacionId: 'org-1' } },
   });

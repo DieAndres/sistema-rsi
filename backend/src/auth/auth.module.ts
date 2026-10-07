@@ -8,7 +8,13 @@ import { PasskeyService } from './passkey.service';
 
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, PasskeyService, PrismaService, AuthGuard, RolesGuard],
+  providers: [
+    AuthService,
+    PasskeyService,
+    PrismaService,
+    AuthGuard,
+    RolesGuard,
+  ],
   exports: [AuthService, AuthGuard, RolesGuard],
 })
 export class AuthModule {}

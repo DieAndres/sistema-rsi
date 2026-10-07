@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { REQUERIMIENTOS_BCU } from './requerimientos-bcu';
-
 function celda(valor: string | null | undefined) {
   return (valor ?? '')
     .replace(/&/g, '&amp;')
@@ -18,14 +17,17 @@ function celda(valor: string | null | undefined) {
 @Injectable()
 export class BcuService {
   constructor(private readonly prisma: PrismaService) {}
+
   private async organizacion(id: string) {
     const organizacion = await this.prisma.organizacion.findUnique({
       where: { id },
     });
-    if (!organizacion)
+    if (!organizacion) {
       throw new NotFoundException('Organización no encontrada');
+    }
     return organizacion;
   }
+
   async listar(organizacionId: string) {
     await this.organizacion(organizacionId);
     const evaluaciones = await this.prisma.evaluacionBcu.findMany({
@@ -37,37 +39,47 @@ export class BcuService {
         evaluaciones.find((e) => e.controlId === control.controlId) ?? null,
     }));
   }
+
   async guardar(
     organizacionId: string,
     controlId: string,
     datos: Record<string, unknown>,
   ) {
     await this.organizacion(organizacionId);
-    if (!REQUERIMIENTOS_BCU.some((c) => c.controlId === controlId))
+    if (!REQUERIMIENTOS_BCU.some((c) => c.controlId === controlId)) {
       throw new BadRequestException('Requerimiento BCU no válido');
-    if (!datos || typeof datos !== 'object' || Array.isArray(datos))
+    }
+    if (!datos || typeof datos !== 'object' || Array.isArray(datos)) {
       throw new BadRequestException('Evaluación no válida');
+    }
     if (
       datos.respuesta !== null &&
       !['CUMPLE', 'PARCIAL', 'NO', 'NA'].includes(String(datos.respuesta))
-    )
+    ) {
       throw new BadRequestException('Respuesta no válida');
+    }
     const campos: Record<string, string | null> = {};
     for (const campo of ['justificacion', 'evidencia', 'demostracion']) {
       const valor = datos[campo];
-      if (valor != null && (typeof valor !== 'string' || valor.length > 10000))
+      if (
+        valor != null &&
+        (typeof valor !== 'string' || valor.length > 10000)
+      ) {
         throw new BadRequestException(
           `${campo} debe ser texto de hasta 10000 caracteres`,
         );
+      }
       campos[campo] = typeof valor === 'string' ? valor.trim() || null : null;
     }
-    if (datos.respuesta !== null && !campos.justificacion)
+    if (datos.respuesta !== null && !campos.justificacion) {
       throw new BadRequestException('La evaluación requiere justificación');
+    }
     if (
       ['CUMPLE', 'PARCIAL'].includes(String(datos.respuesta)) &&
       !campos.evidencia
-    )
+    ) {
       throw new BadRequestException('Cumple o parcial requiere evidencia');
+    }
     const evaluacion = {
       respuesta: datos.respuesta as string | null,
       justificacion: campos.justificacion,
@@ -80,6 +92,7 @@ export class BcuService {
       update: evaluacion,
     });
   }
+
   async exportar(organizacionId: string) {
     const organizacion = await this.organizacion(organizacionId);
     const controles = await this.listar(organizacionId);

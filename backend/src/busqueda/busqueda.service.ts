@@ -39,7 +39,6 @@ export class BusquedaService {
     const texto = (campos: string[]) =>
       contiene ? { OR: campos.map((campo) => ({ [campo]: contiene })) } : {};
     const estado = filtros.estado ? { estado: filtros.estado } : {};
-
     const [
       activos,
       riesgos,
@@ -166,7 +165,6 @@ export class BusquedaService {
         },
       }),
     ]);
-
     return {
       activos,
       riesgos: riesgos.map((riesgo) => ({
@@ -189,7 +187,9 @@ export class BusquedaService {
       where: { id: unidadId },
       select: { id: true },
     });
-    if (!inicial) throw new BadRequestException('La unidad no existe');
+    if (!inicial) {
+      throw new BadRequestException('La unidad no existe');
+    }
     const ids = [unidadId];
     for (let inicio = 0; inicio < ids.length;) {
       const hijos = await this.prisma.unidadOrganizativa.findMany({

@@ -1,3 +1,4 @@
+import type { RequestConUsuario } from './usuario-autenticado';
 import {
   Body,
   Controller,
@@ -16,7 +17,6 @@ import { LoginDto } from './dto/login.dto';
 import { Public } from './decorators/public.decorator';
 import { Roles } from './decorators/roles.decorator';
 import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
-import { Request } from 'express';
 import { PasskeyService } from './passkey.service';
 import type {
   AuthenticationResponseJSON,
@@ -31,13 +31,13 @@ export class AuthController {
   ) {}
 
   @Post('passkey/register/options')
-  registroPasskeyOpciones(@Req() request: Request & { user?: { id: string } }) {
+  registroPasskeyOpciones(@Req() request: RequestConUsuario) {
     return this.passkeys.registroOpciones(request.user!.id);
   }
 
   @Post('passkey/register/verify')
   registrarPasskey(
-    @Req() request: Request & { user?: { id: string } },
+    @Req() request: RequestConUsuario,
     @Body() datos: { challengeId: string; response: RegistrationResponseJSON },
   ) {
     return this.passkeys.registrar(
@@ -97,7 +97,7 @@ export class AuthController {
   actualizarUsuario(
     @Param('id') id: string,
     @Body() datos: ActualizarUsuarioDto,
-    @Req() request: Request & { user?: { id: string } },
+    @Req() request: RequestConUsuario,
   ) {
     return this.auth.actualizarUsuario(id, datos, request.user!.id);
   }
@@ -109,14 +109,14 @@ export class AuthController {
   }
 
   @Post('mfa/setup')
-  iniciarMfa(@Req() request: Request & { user?: { id: string } }) {
+  iniciarMfa(@Req() request: RequestConUsuario) {
     return this.auth.iniciarMfa(request.user!.id);
   }
 
   @Post('mfa/confirm')
   confirmarMfa(
     @Body('codigo') codigo: string,
-    @Req() request: Request & { user?: { id: string } },
+    @Req() request: RequestConUsuario,
   ) {
     return this.auth.confirmarMfa(request.user!.id, codigo);
   }

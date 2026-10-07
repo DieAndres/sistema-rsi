@@ -4,7 +4,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-
 const CATEGORIAS = [
   { numero: 5, nombre: 'Organizacionales', total: 37 },
   { numero: 6, nombre: 'Personas', total: 8 },
@@ -19,7 +18,6 @@ const FUNCIONES = [
   'Responder',
   'Recuperar',
 ];
-
 // Denominaciones orientativas propias; no reproducen el texto oficial de ISO/IEC 27001.
 const TEMAS_CONTROLES: Record<number, string[]> = {
   5: [
@@ -124,7 +122,6 @@ const TEMAS_CONTROLES: Record<number, string[]> = {
     'Protección durante pruebas de auditoría',
   ],
 };
-
 function celda(valor: string | number | null | undefined): string {
   return String(valor ?? '')
     .replace(/&/g, '&amp;')
@@ -133,9 +130,10 @@ function celda(valor: string | number | null | undefined): string {
     .replace(/\|/g, '&#124;')
     .replace(/[\r\n]+/g, ' ');
 }
-
 function textoOpcional(valor: unknown, campo: string): string | null {
-  if (valor === null || valor === undefined) return null;
+  if (valor === null || valor === undefined) {
+    return null;
+  }
   if (typeof valor !== 'string' || valor.length > 1000) {
     throw new BadRequestException(
       `${campo} debe ser texto de hasta 1000 caracteres`,
@@ -143,7 +141,6 @@ function textoOpcional(valor: unknown, campo: string): string | null {
   }
   return valor.trim() || null;
 }
-
 export const CONTROLES_SOA = CATEGORIAS.flatMap(({ numero, total }) => {
   if (TEMAS_CONTROLES[numero].length !== total) {
     throw new Error(`Catálogo SoA incompleto para A.${numero}`);
@@ -202,23 +199,24 @@ export class SoaService {
         'IMPLEMENTADO requiere evidencia vinculada',
       );
     }
-
     if (evidenciaId) {
       const evidencia = await this.prisma.evidencia.findFirst({
         where: { id: evidenciaId, organizacionId },
         select: { id: true },
       });
-      if (!evidencia)
+      if (!evidencia) {
         throw new BadRequestException('Evidencia fuera de la organización');
+      }
     }
     if (planId) {
       const plan = await this.prisma.plan.findFirst({
         where: { id: planId, organizacionId },
         select: { id: true },
       });
-      if (!plan) throw new BadRequestException('Plan fuera de la organización');
+      if (!plan) {
+        throw new BadRequestException('Plan fuera de la organización');
+      }
     }
-
     const evaluacion = {
       titulo,
       aplica: datos.aplica as boolean | null,
@@ -305,7 +303,6 @@ export class SoaService {
     const esEscenarioSimulado = /datos sintéticos para demostración/i.test(
       organizacion.alcanceSgsi ?? '',
     );
-
     const resumen = CATEGORIAS.map(({ numero, nombre, total }) => {
       const delGrupo = evaluaciones.filter((item) =>
         item.controlId.startsWith(`A.${numero}.`),
@@ -343,7 +340,6 @@ export class SoaService {
         const accion = `${item.plan!.descripcion || item.plan!.nombre} (${item.plan!.estado})`;
         return `| ${celda(item.plan!.id)} | ${celda(riesgoControl)} | ${celda(accion)} | ${celda(item.plan!.responsable?.nombre)} | ${celda(item.plan!.fechaFin?.toISOString().slice(0, 10))} |`;
       });
-
     return [
       '# Declaración de Aplicabilidad (SoA) y Plan de Tratamiento',
       '',
@@ -472,8 +468,9 @@ export class SoaService {
       where: { id },
       select: { nombre: true, alcanceSgsi: true },
     });
-    if (!organizacion)
+    if (!organizacion) {
       throw new NotFoundException('Organización no encontrada');
+    }
     return organizacion;
   }
 }
