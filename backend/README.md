@@ -2,6 +2,22 @@
 
 API REST del Sistema de Gestión Integrada para el RSI, construida con NestJS, TypeScript, Prisma y PostgreSQL.
 
+## Cómo leer el código
+
+La entrada está en `src/main.ts`. `src/app.module.ts` reúne los módulos y registra los controles de acceso y la auditoría.
+
+Para seguir una operación, empezá por el controlador de su módulo:
+
+1. El archivo `*.controller.ts` define la ruta y recibe los datos de la petición.
+2. El DTO de `dto/` describe los datos de entrada; las validaciones se realizan en el servicio.
+3. El archivo `*.service.ts` comprueba las reglas y consulta la base con Prisma.
+
+Por ejemplo, crear un activo sigue este recorrido: `seguridad.controller.ts → SeguridadService.crearActivo → prisma.activo.create`.
+
+Organización, seguridad y cumplimiento tienen su lógica en sus propios servicios. Dentro de seguridad y cumplimiento, las operaciones están agrupadas por entidad y las validaciones privadas quedan al final.
+
+Los tipos compartidos de las peticiones autenticadas están en `src/auth/usuario-autenticado.ts`. El guard de autenticación agrega el usuario a la petición. Para entender la auditoría, leé `auditoria.interceptor.ts` junto con `prisma.service.ts`: el interceptor abre la transacción y Prisma reutiliza esa transacción durante la petición.
+
 ## Preparación
 
 Desde la raíz del proyecto, iniciá PostgreSQL:
