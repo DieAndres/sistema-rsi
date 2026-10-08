@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+
+echo "Analizando dependencias del backend..."
+npm --prefix backend audit --audit-level=high
+
+echo "Analizando dependencias del frontend..."
+npm --prefix frontend audit --audit-level=high

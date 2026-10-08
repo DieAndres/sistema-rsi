@@ -37,3 +37,17 @@ Si cambia el puerto HTTPS, actualizar también `PUBLIC_ORIGIN`. Para el verifica
 Para publicar, utilizar un certificado válido para el dominio y su cadena en `server.crt`, clave en `server.key` y configurar renovación. Ajustar `PUBLIC_ORIGIN`, los puertos 443/80 y la interfaz de publicación. El certificado de localhost es para laboratorio; no acredita confianza pública.
 
 Vite sigue siendo un entorno HTTP de desarrollo separado. Para demostrar RNF-04 utilizar Docker HTTPS. Al cambiar de origen es necesario iniciar sesión nuevamente; actualizar `SESSION_ALLOWED_ORIGINS` si cambia el origen. El tráfico Nginx → backend utiliza HTTP dentro de la red privada Docker.
+
+## Límites de solicitudes
+
+Nginx limita por IP de conexión, usando `limit_req`:
+
+- Login y confirmación TOTP comparten una tasa de 5 solicitudes/minuto y permiten hasta 5 solicitudes iniciales seguidas (`burst=4`). El margen se recupera progresivamente, aproximadamente una solicitud cada 12 segundos; no es una ventana fija.
+- El resto de la API tiene una tasa de 20 solicitudes/segundo con `burst=40` para picos de la interfaz.
+- El exceso responde HTTP 429 sin reenviar la solicitud al backend. Se cuentan solicitudes correctas e incorrectas. Los archivos estáticos y `/healthz` quedan fuera del límite.
+
+La identidad usada es `$binary_remote_addr`, sin confiar en el encabezado `X-Forwarded-For` enviado por el cliente. Usuarios detrás de la misma IP comparten el límite. Si se agrega otro proxy, configurar explícitamente sus IP confiables antes de ajustar la IP real. El control se aplica solo al tráfico que pasa por Nginx; el acceso directo a NestJS durante desarrollo no queda limitado. No es un bloqueo por cuenta ni protección completa contra ataques distribuidos.
+
+Después de modificar la configuración, ejecutar `docker compose up -d --build frontend` y `docker compose exec frontend nginx -t`. En un entorno local con los límites sin consumir, ejecutar `node infrastructure/nginx/verificar-limites.mjs`. La prueba envía solicitudes vacías al login y consume deliberadamente los límites; esperar a su recuperación antes de iniciar sesión.
+
+Referencia: [módulo oficial limit_req](https://nginx.org/en/docs/http/ngx_http_limit_req_module.html).
