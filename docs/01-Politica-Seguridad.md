@@ -53,7 +53,7 @@ Protege el propio Sistema RSI y los datos que almacena. No establece la polític
 | Activos y riesgos del sistema | Inventariar componentes, asignar responsables, analizar amenazas y registrar tratamientos y riesgo residual. | [Activos](./02-registro-activos.md) y [Riesgos](./03-Analisis-Riesgos.md) |
 | Vulnerabilidades | Registrar, priorizar, remediar y comprobar los hallazgos técnicos del sistema. | [Gestión de vulnerabilidades](./10-Gestion-Vulnerabilidades.md) |
 | Incidentes | Reportar, registrar, contener, recuperar y documentar lecciones aprendidas. | [Gestión de incidentes](./04-Gestion-Incidentes.md) |
-| Auditoría y monitoreo | Registrar accesos y cambios relevantes, proteger los logs y revisar los eventos de seguridad. | [Monitoreo y logs](./07-Monitoreo-Logs-SIEM.md) |
+| Auditoría y monitoreo | Registrar accesos y cambios relevantes, proteger los logs y revisar los eventos de seguridad. | [Monitoreo y logs](./07-Monitoreo-Logs.md) |
 | Continuidad | Respaldar datos y configuración, definir tiempos de recuperación y probar restauraciones. | [Plan de continuidad](./06-Plan-Continuidad.md) |
 | Exportaciones | Autorizar la generación, validar el contenido y evitar mezclar datos de distintas organizaciones. | [Exportaciones](./exportaciones/README.md) |
 

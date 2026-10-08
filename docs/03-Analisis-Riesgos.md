@@ -25,7 +25,7 @@
 
 Este análisis evalúa los riesgos del propio Sistema RSI: interfaz, API, autenticación, base de datos, auditoría, configuración, código e infraestructura local. Las organizaciones y activos cargados por los usuarios son información almacenada por la plataforma.
 
-Docker Compose define frontend, backend y PostgreSQL. Nginx ofrece HTTPS local con certificado autofirmado y redirige HTTP a HTTPS. El backend se comunica por la red interna de Docker y PostgreSQL publica su puerto solo en loopback. Wazuh, respaldos independientes y restauraciones probadas siguen pendientes.
+Docker Compose define frontend, backend y PostgreSQL. Nginx ofrece HTTPS local con certificado autofirmado y redirige HTTP a HTTPS. El backend se comunica por la red interna de Docker y PostgreSQL publica su puerto solo en loopback. La integración con Wazuh queda como mejora futura. Los respaldos independientes y las restauraciones probadas siguen pendientes.
 
 La evaluación identifica 12 escenarios: 6 de nivel Alto y 6 de nivel Medio. Las valoraciones son estimaciones del entorno local, no resultados de ataques ejecutados. Deben revisarse antes de publicar el sistema o ampliar su uso con datos reales.
 
@@ -37,13 +37,10 @@ Se utilizan los IDs del [inventario de activos](./02-registro-activos.md), abrev
 |---|---|---|---|
 | R01 | Pérdida irreversible de datos | A04 A05 A06 A10 | Falla, borrado o corrupción sin respaldo independiente y restauración probada. |
 | R02 | Robo y reutilización de una sesión | A01 A02 A03 A05 | La sesión usa cookie HttpOnly y validación de origen. Queda pendiente revisar y validar la configuración CSP y la prevención de XSS, lo que requiere profundizar conocimientos sobre el tema. |
-| R03 | Exposición de semillas TOTP y secretos | A03 A04 A05 A07 | Las semillas TOTP se cifran con AES-256-GCM. La exposición de la clave del backend o de respaldos anteriores sin cifrar podría comprometerlas. |
+| R03 | Exposición de semillas TOTP y secretos | A03 A04 A05 A07 | Las semillas TOTP se cifran con AES-256-GCM. La clave de cifrado se guarda sin cifrar en el entorno del backend. Integrar un gestor de secretos externo para mejorar su custodia queda como mejora futura, porque requiere un desarrollo y una configuración más complejos. |
 | R05 | Exposición insegura al publicar el sistema | A01 A02 A03 A05 A10 A11 | HTTPS local está configurado; una publicación requiere certificado válido, configuración de red y revisión de puertos. |
-| R06 | Abuso de autenticación y saturación de la API | A02 A03 A04 A08 A11 | No se observa limitación explícita de intentos de login ni de peticiones. |
-| R07 | Explotación de dependencias o imágenes | A01 A02 A04 A09 A10 A11 | Dependencias de terceros e imágenes con etiquetas variables pueden incorporar vulnerabilidades. |
-| R08 | Pérdida o alteración de auditoría y detección tardía | A04 A05 A08 | Auditoría y datos comparten BD y anfitrión; no hay copia independiente ni SIEM. |
-| R09 | Fallos de integridad por cambios y concurrencia | A02 A04 A05 A09 | Migraciones o cambios concurrentes pueden causar errores; los conflictos requieren manejo y comprobación. |
-| R10 | Interrupción del anfitrión y recuperación prolongada | A01 A02 A04 A06 A10 A11 | Servicios y datos dependen de un equipo; falta probar su reconstrucción en otro entorno. |
+| R07 | Explotación de dependencias o imágenes | A01 A02 A04 A09 A10 A11 | Se analizan las dependencias antes de cada push mediante `npm audit`. Queda pendiente corregir los hallazgos y revisar las imágenes Docker. |
+| R08 | Pérdida o alteración de auditoría y detección tardía | A04 A05 A08 | Auditoría y datos comparten BD y anfitrión; no hay copia independiente. La integración con Wazuh como SIEM queda como mejora futura. |
 | R11 | Divulgación mediante exportaciones o evidencias | A01 A02 A05 A08 A09 | Archivos, capturas y metadatos pueden compartirse con datos personales innecesarios. |
 | R12 | Bloqueo de acceso por pérdida de TOTP | A03 A05 A07 | Falta un procedimiento de recuperación de cuentas que compruebe identidad y registre las acciones. |
 
@@ -59,15 +56,12 @@ Los riesgos se priorizan considerando la posibilidad de que ocurran y sus consec
 | R02 | Robo y reutilización de una sesión | Alto |
 | R03 | Exposición de semillas TOTP y secretos | Alto |
 | R05 | Exposición insegura al publicar el sistema | Medio |
-| R06 | Abuso de autenticación y saturación | Medio |
 | R07 | Explotación de dependencias o imágenes | Alto |
 | R08 | Pérdida de auditoría y detección tardía | Alto |
-| R09 | Fallos por cambios y concurrencia | Medio |
-| R10 | Interrupción y recuperación prolongada | Alto |
 | R11 | Divulgación mediante exportaciones o evidencias | Medio |
 | R12 | Bloqueo de acceso por pérdida de TOTP | Medio |
 
-Se priorizan R01, R02, R03, R07, R08 y R10 por su nivel Alto. R05 y R06 deben revisarse antes del acceso remoto. La evaluación también se actualiza cuando cambian los datos, la infraestructura o los controles, o aparecen nuevos hallazgos. Los tiempos de recuperación se definen y comprueban según el [plan de continuidad](./06-Plan-Continuidad.md).
+Se priorizan R01, R02, R03, R07 y R08 por su nivel Alto. R05 debe revisarse antes del acceso remoto. La evaluación también se actualiza cuando cambian los datos, la infraestructura o los controles, o aparecen nuevos hallazgos. Los tiempos de recuperación se definen y comprueban según el [plan de continuidad](./06-Plan-Continuidad.md).
 
 ## 5. Plan de tratamiento
 
@@ -79,11 +73,8 @@ Las siguientes medidas son propuestas para reducir los riesgos. Su cierre requie
 | R02 | Mantener cookies protegidas, validación de origen, CSP y revocación implementados; revisar dependencias y reforzar la protección frente a XSS. | Responsable técnico | Alta | Cookies, origen, vencimiento y revocación comprobados; seguimiento en la evidencia de sesiones. |
 | R03 | Mantener el cifrado de semillas TOTP, custodiar la clave fuera de la BD y restringir el acceso a secretos y respaldos anteriores. | Responsable técnico y Administrador | Alta | Comprobar que una copia de la BD no revela semillas y probar recuperación de claves. |
 | R05 | Mantener la exposición local; antes de publicar, configurar certificado válido, HTTPS y restricciones de puertos. | Administrador | Media; previa a publicación | Verificar certificado, redirección y ausencia de acceso externo directo a API y BD. |
-| R06 | Limitar intentos de login y TOTP, controlar peticiones y comprobar el comportamiento ante carga. | Responsable técnico | Media; previa a publicación | Verificar límites o demoras sin impedir el acceso legítimo. |
 | R07 | Revisar dependencias e imágenes, actualizar hallazgos relevantes y probar las versiones utilizadas. | Responsable técnico | Alta | Registrar revisión, correcciones y compilación de la versión evaluada. |
 | R08 | Centralizar auditoría en un destino independiente, definir retención y alertas. | Administrador y RSI | Alta | Comprobar recepción de eventos, permisos y una alerta de prueba. |
-| R09 | Probar migraciones y operaciones concurrentes; respaldar antes de cambios y manejar conflictos. | Responsable técnico | Media | Verificar ausencia de cambios parciales y documentar recuperación. |
-| R10 | Relevar el anfitrión, monitorear recursos y reconstruir el servicio en otro entorno. | Administrador | Alta | Ejecutar un simulacro y registrar tiempos de recuperación. |
 | R11 | Usar datos sintéticos en demostraciones y revisar exportaciones, capturas y campos de auditoría. | RSI y Responsable técnico | Media | Comprobar que las muestras no contienen secretos ni datos personales innecesarios. |
 | R12 | Definir recuperación de cuentas con verificación de identidad, restablecimiento de TOTP y revocación de sesiones. | Responsable técnico y RSI | Media | Probar una recuperación autorizada y registrar quién la realizó y su resultado. |
 

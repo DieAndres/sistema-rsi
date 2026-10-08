@@ -434,9 +434,10 @@ alcance del usuario autenticado.
   personales e informe de medidas de seguridad. La sección visual existe,
   pero todavía no genera documentos.
 
-- Integración con Wazuh.
 - Respaldos automáticos, copia externa y prueba documentada de restauración.
 
 ### Mejora futura
+
+- Integración con Wazuh para centralizar logs, detectar actividad sospechosa y generar alertas. La parte de SIEM de la consigna queda pendiente.
 
 - Incorporación y validación de Windows Hello, fuera del alcance de esta entrega.

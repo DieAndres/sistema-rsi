@@ -1,119 +1,85 @@
 # Gestión de incidentes de seguridad del Sistema RSI
 
-Este procedimiento trata los incidentes que afectan al **propio Sistema de Gestión Integrada para el RSI**: su aplicación web, API, autenticación, base de datos, configuración, exportaciones y disponibilidad. Los incidentes que una organización registra sobre sus activos son datos gestionados por el RSI y no demuestran que la plataforma haya sufrido un incidente.
+Este procedimiento define cómo responder a incidentes que afectan al propio Sistema RSI: aplicación, API, autenticación, base de datos, exportaciones o infraestructura. Los incidentes de una organización registrados en la aplicación son datos gestionados por el sistema y no implican un incidente de la plataforma.
 
-## Encabezado de mapeo normativo
+## Mapeo normativo
 
-| Marco | Ítem verificado | Aporte al Sistema RSI |
+| Marco | Referencia | Aporte |
 |---|---|---|
-| MCU 5.0 (funciones) | Detectar (DE), Responder (RS), Recuperar (RC) | Ordena la detección de eventos de la plataforma, su respuesta y la verificación de la recuperación. |
-| MCU 5.0 (categorías) | DE.AE; RS.MA, RS.AN, RS.CO, RS.MI; RC.RP | Relaciona este procedimiento con análisis de eventos, gestión y mitigación de incidentes y ejecución de la recuperación. No equivale a demostrar cada subcategoría. |
-| COBIT 2019 | DSS02 (gestión de solicitudes e incidentes) y DSS04 (continuidad) | Orienta el registro, la asignación de responsables y la conexión con el plan de continuidad del RSI. |
-| ISO/IEC 27001:2022 | Anexo A: 5.24 a 5.28 | Referencia para preparar, evaluar, responder, aprender y preservar evidencias. Este documento no declara conformidad. |
-| ISO/IEC 27035-1:2023 | Principios y proceso de gestión de incidentes | Referencia para ordenar las etapas del procedimiento. |
-| BCU — Guía de estándares mínimos de gestión | GI.1 a GI.5 | Referencia para planificar, evaluar, informar, registrar y responder. Solo una entidad supervisada determina sus obligaciones ante el BCU. |
-| Protección de datos personales | Ley 19.670, art. 38; Decreto 64/020, arts. 3 y 4 | Si una vulneración del RSI afecta datos personales, su operador debe evaluar las medidas y comunicaciones que correspondan. El «art. 20 de la Ley 18.331» citado en la plantilla no regula esta notificación. |
-
-El objetivo académico del proyecto es el perfil MCU 5.0 **Avanzado**. El perfil y el grado de adopción se evalúan con controles y evidencia, no por la existencia de este texto.
+| MCU 5.0 | Detectar, Responder y Recuperar | Organizar la detección, respuesta y recuperación. |
+| COBIT 2019 | DSS02 y DSS04 | Gestionar incidentes y continuidad. |
+| ISO/IEC 27001:2022 | Controles 5.24 a 5.28 | Preparar la respuesta y preservar evidencias. |
+| ISO/IEC 27035-1:2023 | Gestión de incidentes | Ordenar las etapas del procedimiento. |
+| BCU | Gestión de incidentes | Evaluar comunicaciones cuando corresponda a una entidad supervisada. |
+| Protección de datos personales | Ley 19.670 y Decreto 64/020 | Evaluar las comunicaciones ante una vulneración de datos personales. |
 
 ## Control del documento
 
 | Campo | Valor |
 |---|---|
 | Código | SI-INC-04 |
-| Versión | 1.4 — propuesta |
-| Responsable | RSI o responsable de seguridad designado para operar el Sistema RSI |
-| Fecha | 01/10/2026 |
-| Aprobación | Pendiente de registrar |
-| Próxima revisión | Un año después de la aprobación o tras un incidente significativo |
+| Versión | 1.5 |
+| Responsable | RSI o responsable de seguridad designado |
+| Fecha | 08/10/2026 |
 
-### Historial de versiones
+## 1. Definiciones y severidad
 
-| Versión | Fecha | Autor | Cambios |
-|---|---|---|---|
-| 1.0 | 24/09/2026 | Equipo del proyecto | Primer borrador. |
-| 1.1 | 30/09/2026 | Equipo del proyecto | Alcance y referencias normativas centradas en el RSI. |
-| 1.2 | 30/09/2026 | Equipo del proyecto | Reorganización según la estructura de `plantilla/isaca/04-gestion-incidentes.md`. |
-| 1.3 | 30/09/2026 | Equipo del proyecto | Retiro de las secciones de guía de llenado y aceptación, propias de la plantilla. |
+Un **evento** es un hecho que requiere evaluación, como un intento fallido de acceso. Un **incidente** es un evento confirmado o razonablemente sospechado que afecta la confidencialidad, integridad o disponibilidad del sistema.
 
-| 1.4 | 01/10/2026 | Equipo del proyecto | Actualización del alcance del registro de incidentes y enlace al seguimiento implementado. |
+La severidad determina la prioridad de respuesta y puede cambiar con la información obtenida.
 
-## 1. Definiciones (marco)
-
-- **Evento de seguridad:** hecho observable en el RSI que debe evaluarse. Un fallo de autenticación aislado es un evento, no necesariamente un incidente.
-- **Incidente de seguridad del RSI:** evento confirmado o razonablemente sospechado que afecta su confidencialidad, integridad o disponibilidad, o vulnera su política de seguridad.
-- **Severidad:** prioridad inicial de respuesta según impacto y alcance. Puede cambiar a medida que aparezca evidencia.
-
-Las bandas siguientes son criterios propuestos para el proyecto; requieren aprobación operativa.
-
-| Severidad | Criterio | Ejemplo relacionado con el RSI |
+| Severidad | Criterio | Ejemplo |
 |---|---|---|
-| S0 — Crítica | Exposición extensa de información, control administrativo no autorizado o indisponibilidad total de alto impacto. | Acceso no autorizado a toda la base de datos. |
-| S1 — Alta | Compromiso confirmado de cuenta privilegiada, componente central o datos de un ámbito restringido. | Sesión administrativa utilizada por un tercero. |
-| S2 — Media | Afectación acotada o intento de intrusión con indicios verificables y sin compromiso extenso confirmado. | Alteración limitada de una exportación. |
-| S3 — Baja | Anomalía que amerita análisis, con impacto aún no confirmado. | Serie inusual de accesos fallidos. |
+| Crítica | Afectación extensa de datos o del servicio. | Acceso no autorizado a toda la BD. |
+| Alta | Compromiso de una cuenta privilegiada o de datos restringidos. | Uso de una sesión administrativa por un tercero. |
+| Media | Afectación limitada que requiere intervención. | Alteración de una exportación. |
+| Baja | Anomalía con impacto aún no confirmado. | Serie inusual de accesos fallidos. |
 
-## 2. Clasificación y registro de incidentes
+## 2. Registro y responsables
 
-Quien detecte un evento debe comunicarlo al responsable de seguridad. Este distingue hecho de sospecha, identifica el componente afectado, asigna severidad y abre un expediente si corresponde.
+Quien detecte un evento debe informarlo al RSI o responsable de seguridad. Este evalúa el caso, asigna severidad y coordina la respuesta. El administrador o responsable técnico ejecuta las acciones técnicas.
 
-| Campo del expediente del RSI | Qué registrar |
+| Campo | Qué registrar |
 |---|---|
-| Identificador | Referencia única asignada al abrir el caso; no se presupone un formato automático. |
-| Fecha y hora UTC | Detección, confirmación, decisiones, recuperación y cierre. |
-| Descripción y fuente | Síntomas observados, reporte humano, log o resultado de prueba. |
-| Severidad y estado | Clasificación inicial y cambios posteriores, con motivo. |
-| Componente y alcance | Frontend, API, autenticación, base de datos, exportador o infraestructura; datos potencialmente afectados. |
+| Identificador | Referencia única del caso. |
+| Fecha y hora | Detección, acciones, recuperación y cierre, indicando zona horaria. |
+| Descripción y fuente | Qué ocurrió y cómo se detectó. |
+| Severidad y estado | Clasificación y situación actual. |
+| Alcance | Componentes y datos afectados. |
 | Responsable | Persona que coordina la respuesta. |
-| Evidencia preservada | Referencia protegida a logs o archivos, su origen y quien los obtuvo; no incluir secretos en Git. |
-| Acciones | Contención, corrección, restauración, verificación y comunicaciones efectuadas. |
+| Evidencias | Referencias a logs o archivos preservados con acceso restringido. |
+| Acciones | Medidas tomadas, resultados y comunicaciones. |
 
-### Registro de incidentes del Sistema RSI
+El módulo de incidentes registra casos asociados a activos de organizaciones y conserva acciones por etapa, autor y fecha. Su funcionamiento se describe en [Ciclo de incidentes](evidencias/incidentes-ciclo.md). Para un incidente del propio RSI se debe identificar el caso real o simulacro y conservar su registro y evidencias; la existencia del módulo no demuestra que haya ocurrido uno.
 
-| ID | Detección UTC | Descripción | Severidad | Componente | Estado | Responsable | Evidencia |
-|---|---|---|---|---|---|---|---|
-| Sin incidentes del RSI documentados en este archivo | — | — | — | — | — | — | — |
+## 3. Procedimiento de respuesta
 
-El módulo `/api/v1/seguridad/incidentes` registra incidentes asociados a activos de organizaciones y ahora conserva acciones por etapa, autor y fecha mediante `AccionIncidente`, además de la auditoría general. Su uso y límites se documentan en [Ciclo de incidentes](evidencias/incidentes-ciclo.md). Esto no demuestra un incidente **del propio RSI** ni sustituye su expediente operativo: debe identificarse el caso real o simulacro, conservar evidencias en un medio protegido y registrar las comunicaciones pertinentes. La tabla se completa solo con esos casos identificados. El historial anterior a la migración no se reconstruye.
+1. **Detección:** recibir un reporte o identificar una anomalía en los registros. Anotar fecha, hora y fuente.
+2. **Evaluación:** determinar alcance, severidad y responsable. Preservar logs y archivos relevantes antes de modificarlos, cuando sea posible, sin guardar secretos en Git.
+3. **Contención:** limitar el daño, por ejemplo revocando sesiones o restringiendo el acceso al componente afectado. Registrar las medidas.
+4. **Corrección:** solucionar la causa identificada y comprobar que el problema no se repita.
+5. **Recuperación:** restablecer el servicio y verificar los datos, autenticación, permisos y funciones afectadas. Aplicar el [Plan de continuidad](06-Plan-Continuidad.md) cuando corresponda.
+6. **Cierre:** documentar resultados, comunicaciones y mejoras después de comprobar la recuperación.
 
-## 3. Procedimiento de respuesta (línea de tiempo)
-
-1. **Detección:** recibir un reporte, revisar un evento de auditoría o identificar una anomalía durante una prueba. Registrar hora UTC y fuente.
-2. **Evaluación y registro:** confirmar lo conocido, abrir el expediente, estimar impacto, asignar severidad y responsable. No retrasar la contención mientras se investiga una causa aún desconocida.
-3. **Preservación:** guardar los logs y artefactos originales con origen, fecha y acceso restringido antes de modificarlos cuando sea posible.
-4. **Contención:** limitar el daño según el caso, por ejemplo revocar una sesión, restringir un endpoint o aislar una instancia afectada. Registrar el efecto de la medida sobre el servicio.
-5. **Erradicación:** corregir la causa comprobada, como código, configuración, dependencia o credencial comprometida; verificar que la vía de ataque ya no funcione.
-6. **Recuperación:** restaurar desde una fuente confiable si corresponde y comprobar base de datos, autenticación, permisos, API y exportaciones afectadas. Ante pérdida de servicio o datos, aplicar `docs/06-Plan-Continuidad.md`.
-7. **Lecciones y cierre:** documentar impacto, causa, acciones y mejoras; cerrar después de verificar la recuperación y las comunicaciones necesarias.
-
-Este es un procedimiento manual. El código y la documentación actual no acreditan un SIEM operativo, respuesta automatizada, respaldo diario ni restauración probada.
+La respuesta actual es manual y utiliza auditoría de aplicación y logs técnicos. La integración con Wazuh para detección y alertas queda como mejora futura. Los respaldos automatizados y las restauraciones probadas siguen pendientes.
 
 ## 4. Notificación y escalamiento
 
-| Escenario | Notificar o escalar a | Plazo o criterio | Registro |
-|---|---|---|---|
-| Evento o incidente interno del RSI | RSI o responsable designado; administrador para acciones técnicas | Al detectarlo. El canal interno y su alternativa deben definirse antes de operar. | Expediente del incidente. |
-| Incidente S0 o S1 | Responsable de seguridad y autoridad operativa del sistema | Escalamiento inmediato tras la clasificación inicial; informar cambios relevantes. | Decisiones y comunicaciones en el expediente. |
-| Vulneración de datos personales tratados por el RSI | Responsable o encargado del tratamiento, según su función real; URCDP y titulares cuando corresponda | Iniciar medidas para minimizar el impacto dentro de las primeras 24 horas de constatado; el responsable comunica a URCDP dentro de 72 horas de conocida la vulneración, conforme al Decreto 64/020. | Constancia de evaluación y comunicación externa. |
-| Incidente en una entidad sujeta a supervisión del BCU | Responsable institucional de cumplimiento de esa entidad | Aplicar las obligaciones y plazos vigentes para ella; la condición de entidad supervisada no se presume por usar el RSI. | Constancia institucional, si corresponde. |
+| Situación | A quién informar | Cuándo |
+|---|---|---|
+| Evento o incidente del RSI | RSI o responsable de seguridad y administrador. | Al detectarlo. |
+| Incidente crítico o alto | Responsable de seguridad y autoridad operativa. | Inmediatamente después de la clasificación inicial. |
+| Posible exposición de datos personales | Responsable del tratamiento para evaluar comunicaciones a URCDP y titulares. | Según el procedimiento y los plazos aplicables. |
+| Incidente de una entidad supervisada por el BCU | Responsable institucional de cumplimiento. | Según las obligaciones de esa entidad. |
 
-La notificación externa requiere determinar quién opera el sistema y quién es responsable del tratamiento. El RSI no envía automáticamente notificaciones a URCDP o BCU. `docs/12-Notificacion-Incidentes.md` aún no existe.
+Registrar las comunicaciones en el caso. Los destinatarios, criterios y plazos externos se detallan en [Notificación de incidentes](12-Notificacion-Incidentes.md). El sistema no envía automáticamente estas notificaciones.
 
-## 5. Plantilla de lecciones aprendidas
+## 5. Lecciones aprendidas
 
-| Campo | Qué completar al cerrar un caso |
+| Tema | Qué documentar |
 |---|---|
-| Qué ocurrió | Hechos comprobados y secuencia UTC. |
-| Por qué ocurrió | Causa verificada o hipótesis que sigue abierta. |
-| Qué funcionó | Controles y acciones que limitaron el impacto. |
-| Qué falló | Debilidades observadas en el RSI o en la respuesta. |
-| Recuperación | Comprobaciones realizadas y resultado. |
-| Acciones de mejora | Cambio concreto, responsable y fecha objetivo. |
-
-## Fuentes oficiales
-
-- [AGESIC — Marco de Ciberseguridad 5.0](https://www.gub.uy/agencia-gobierno-electronico-sociedad-informacion-conocimiento/book/9330/download).
-- [ISACA — objetivos DSS02 y DSS04 de COBIT 2019](https://www.isaca.org/resources/news-and-trends/industry-news/2020/evaluating-business-service-continuity-and-availability-using-cobit-2019).
-- [Comité ISO/IEC JTC 1/SC 27 — controles 5.24 a 5.28](https://committee.iso.org/files/live/sites/jtc1sc27/files/resources/Journal%202025.pdf) e [ISO — ISO/IEC 27035-1:2023](https://www.iso.org/standard/78973.html).
-- [BCU — Guía de estándares mínimos de gestión de seguridad de la información](https://www.bcu.gub.uy/Servicios-Financieros-SSF/Documents/guia%20emg%20seguridad%20de%20la%20informacion.pdf).
-- [IMPO — Ley 19.670, art. 38](https://www.impo.com.uy/bases/leyes/19670-2018/38) y [Decreto 64/020, arts. 3 y 4](https://www.impo.com.uy/bases/decretos/64-2020).
+| Qué ocurrió | Hechos y secuencia del incidente. |
+| Causa | Causa comprobada o hipótesis pendiente. |
+| Respuesta | Qué funcionó y qué debe mejorarse. |
+| Recuperación | Comprobaciones y resultados. |
+| Mejoras | Acción concreta, responsable y fecha prevista. |
