@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { apiFetch, obtenerUsuarioActual } from '../../../shared/api/apiGet'
+import { Icono } from '../../../shared/Icono'
 
 export function DatosPanel({ organizacionId }: { organizacionId: string }) {
   const [mensaje, setMensaje] = useState('')
@@ -25,9 +26,9 @@ export function DatosPanel({ organizacionId }: { organizacionId: string }) {
       setMensaje('Exportación descargada.')
     } catch (error) { setMensaje((error as Error).message) } finally { setOcupado(false) }
   }
-  return <section className="panel-estructura" aria-label="Exportación de datos">
-    <h2>Datos de la organización</h2>
-    <p>Descargá los registros de la organización con sus relaciones en JSON o CSV.</p>
+  return <section className="panel-estructura exportaciones-datos" aria-label="Exportación de datos">
+    <div className="exportaciones-datos-descripcion"><span className="exportaciones-icono"><Icono nombre="organizaciones" /></span><div><span className="exportaciones-etiqueta">REGISTROS DE LA ORGANIZACIÓN</span><h2>Exportación de datos</h2>
+    <p>Descargá los registros con sus relaciones en JSON o CSV.</p></div></div>
     <div className="acciones-exportacion">
       <button type="button" disabled={ocupado || !organizacionId} onClick={() => void exportar('json')}>Exportar JSON</button>
       <button type="button" disabled={ocupado || !organizacionId} onClick={() => void exportar('csv')}>Exportar CSV</button>

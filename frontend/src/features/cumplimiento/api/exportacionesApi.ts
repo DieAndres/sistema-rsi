@@ -69,3 +69,7 @@ export function exportarBcu(id: string) {
 export function exportarCobit(id: string) {
   return apiText(`/api/v1/exportaciones/organizaciones/${id}/cobit`);
 }
+
+export function exportarUrcdp(id: string, tipo: 'registro' | 'medidas' | 'brecha', fichaId: string, etapa = 'inicial') {
+  return apiText(`/api/v1/exportaciones/organizaciones/${id}/urcdp/${tipo}-urcdp?${new URLSearchParams({ fichaId, etapa })}`);
+}

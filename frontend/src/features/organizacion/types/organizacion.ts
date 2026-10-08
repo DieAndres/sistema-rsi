@@ -2,6 +2,7 @@ export type Organizacion = {
   id: string
   nombre: string
   alcanceSgsi?: string | null
+  perfilMcu: 'Básico' | 'Estándar' | 'Avanzado'
 }
 
 export type Trabajador = {

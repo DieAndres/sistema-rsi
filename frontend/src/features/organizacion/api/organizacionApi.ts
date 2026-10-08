@@ -32,8 +32,8 @@ export async function apiRequest<T>(ruta: string, init: RequestInit): Promise<T>
 }
 
 
-export function crearOrganizacion(datos: { nombre: string; alcanceSgsi?: string }) { return apiRequest<Organizacion>('/api/v1/organizaciones', { method: 'POST', body: JSON.stringify(datos) }) }
-export function actualizarOrganizacion(id: string, datos: { nombre: string; alcanceSgsi?: string }) { return apiRequest<Organizacion>(`/api/v1/organizaciones/${id}`, { method: 'PATCH', body: JSON.stringify(datos) }) }
+export function crearOrganizacion(datos: { nombre: string; alcanceSgsi?: string | null; perfilMcu?: Organizacion["perfilMcu"] }) { return apiRequest<Organizacion>('/api/v1/organizaciones', { method: 'POST', body: JSON.stringify(datos) }) }
+export function actualizarOrganizacion(id: string, datos: { nombre: string; alcanceSgsi?: string | null; perfilMcu?: Organizacion["perfilMcu"] }) { return apiRequest<Organizacion>(`/api/v1/organizaciones/${id}`, { method: 'PATCH', body: JSON.stringify(datos) }) }
 
 export function listarUnidades(organizacionId: string, signal: AbortSignal) {
   const ruta = `/api/v1/organizaciones/${encodeURIComponent(organizacionId)}/unidades`

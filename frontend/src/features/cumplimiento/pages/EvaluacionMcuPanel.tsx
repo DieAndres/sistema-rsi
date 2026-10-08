@@ -3,6 +3,8 @@ import { Asistente } from '../../../shared/Asistente'
 import { apiRequest } from '../../organizacion/api/organizacionApi'
 import { notificarGuardado } from '../../../shared/notificar'
 
+const codigosFunciones: Record<string, string> = { Gobernar: 'GV', Identificar: 'ID', Proteger: 'PR', Detectar: 'DE', Responder: 'RS', Recuperar: 'RC' }
+
 type Evaluacion = {
   respuesta: string | null
   justificacion: string | null
@@ -12,6 +14,7 @@ type Evaluacion = {
 type Control = {
   controlId: string
   funcion: string
+  funciones: string[]
   codigo: string
   tema: string
   evidenciaNecesaria: string
@@ -20,9 +23,11 @@ type Control = {
 }
 export function EvaluacionMcuPanel({
   organizacionId,
+  perfilMcu,
   alGuardar,
 }: {
   organizacionId: string
+  perfilMcu: string
   alGuardar: () => void
 }) {
   const [controles, setControles] = useState<Control[]>([])
@@ -82,7 +87,8 @@ export function EvaluacionMcuPanel({
       className="panel-estructura"
       aria-label="Evaluación MCU por funciones"
     >
-      <h3>Evaluar controles — perfil Avanzado</h3>
+      <h3>Evaluar controles — objetivo {perfilMcu}</h3>
+      <p>Línea base de AGESIC: {controles.length} controles únicos del perfil {perfilMcu}. Un control puede aparecer en varias funciones.</p>
       <p>
         El texto de evidencia sugerida orienta la revisión; no constituye
         evidencia de la organización. N.A. requiere justificación y revisión de
@@ -112,7 +118,7 @@ export function EvaluacionMcuPanel({
       </label>
       <div className="soa-lista">
         {controles
-          .filter((c) => c.codigo === funcion)
+          .filter((c) => c.funciones.some((nombre) => codigosFunciones[nombre] === funcion))
           .map((c) => (
             <button
               className="soa-control"
