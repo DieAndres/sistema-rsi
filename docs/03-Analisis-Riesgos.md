@@ -36,9 +36,8 @@ Se utilizan los IDs del [inventario de activos](./02-registro-activos.md), abrev
 | ID | Riesgo | Activos | Condición que lo origina |
 |---|---|---|---|
 | R01 | Pérdida irreversible de datos | A04 A05 A06 A10 | Falla, borrado o corrupción sin respaldo independiente y restauración probada. |
-| R02 | Robo y reutilización de una sesión | A01 A02 A03 A05 | La sesión usa cookie HttpOnly y validación de origen; un XSS aún podría ejecutar acciones desde el navegador o una cookie robada por otros medios podría reutilizarse hasta su revocación o vencimiento. |
-| R03 | Exposición de semillas TOTP y secretos | A03 A04 A05 A07 | Las semillas TOTP se guardan en la BD sin cifrado de aplicación. |
-| R04 | Acceso o modificación fuera del ámbito autorizado | A02 A03 A05 | Una regresión en permisos, relaciones o exportadores podría permitir acceso a datos ajenos. |
+| R02 | Robo y reutilización de una sesión | A01 A02 A03 A05 | La sesión usa cookie HttpOnly y validación de origen. Queda pendiente revisar y validar la configuración CSP y la prevención de XSS, lo que requiere profundizar conocimientos sobre el tema. |
+| R03 | Exposición de semillas TOTP y secretos | A03 A04 A05 A07 | Las semillas TOTP se cifran con AES-256-GCM. La exposición de la clave del backend o de respaldos anteriores sin cifrar podría comprometerlas. |
 | R05 | Exposición insegura al publicar el sistema | A01 A02 A03 A05 A10 A11 | HTTPS local está configurado; una publicación requiere certificado válido, configuración de red y revisión de puertos. |
 | R06 | Abuso de autenticación y saturación de la API | A02 A03 A04 A08 A11 | No se observa limitación explícita de intentos de login ni de peticiones. |
 | R07 | Explotación de dependencias o imágenes | A01 A02 A04 A09 A10 A11 | Dependencias de terceros e imágenes con etiquetas variables pueden incorporar vulnerabilidades. |
@@ -59,7 +58,6 @@ Los riesgos se priorizan considerando la posibilidad de que ocurran y sus consec
 | R01 | Pérdida irreversible de datos | Alto |
 | R02 | Robo y reutilización de una sesión | Alto |
 | R03 | Exposición de semillas TOTP y secretos | Alto |
-| R04 | Acceso fuera del ámbito autorizado | Medio |
 | R05 | Exposición insegura al publicar el sistema | Medio |
 | R06 | Abuso de autenticación y saturación | Medio |
 | R07 | Explotación de dependencias o imágenes | Alto |
@@ -79,8 +77,7 @@ Las siguientes medidas son propuestas para reducir los riesgos. Su cierre requie
 |---|---|---|---|---|
 | R01 | Automatizar respaldos independientes, proteger las copias y probar su restauración. | Administrador | Alta | Recuperar datos y verificar relaciones, acceso y consultas. |
 | R02 | Mantener cookies protegidas, validación de origen, CSP y revocación implementados; revisar dependencias y reforzar la protección frente a XSS. | Responsable técnico | Alta | Cookies, origen, vencimiento y revocación comprobados; seguimiento en la evidencia de sesiones. |
-| R03 | Cifrar semillas TOTP con una clave externa a la BD y restringir acceso a secretos. | Responsable técnico y Administrador | Alta | Comprobar que una copia de la BD no revela semillas y probar recuperación de claves. |
-| R04 | Mantener pruebas de permisos por rol, organización y unidad, incluyendo relaciones y exportaciones. | Responsable técnico | Media | Rechazar consultas y modificaciones sobre datos ajenos. |
+| R03 | Mantener el cifrado de semillas TOTP, custodiar la clave fuera de la BD y restringir el acceso a secretos y respaldos anteriores. | Responsable técnico y Administrador | Alta | Comprobar que una copia de la BD no revela semillas y probar recuperación de claves. |
 | R05 | Mantener la exposición local; antes de publicar, configurar certificado válido, HTTPS y restricciones de puertos. | Administrador | Media; previa a publicación | Verificar certificado, redirección y ausencia de acceso externo directo a API y BD. |
 | R06 | Limitar intentos de login y TOTP, controlar peticiones y comprobar el comportamiento ante carga. | Responsable técnico | Media; previa a publicación | Verificar límites o demoras sin impedir el acceso legítimo. |
 | R07 | Revisar dependencias e imágenes, actualizar hallazgos relevantes y probar las versiones utilizadas. | Responsable técnico | Alta | Registrar revisión, correcciones y compilación de la versión evaluada. |

@@ -87,7 +87,7 @@ La protección efectiva se aplica en backend con `AuthGuard`, `RolesGuard`, `Rea
 |---|---|---|
 | Contraseñas de usuarios | Hash Argon2id/bcrypt; compatibilidad scrypt | No compartir cuentas ni publicar hashes; registrar cambios y recuperación de cuenta cuando se implemente el flujo. |
 | Sesión | Hash SHA-256 en BD; cookie HttpOnly, Secure y SameSite=Strict; duración máxima de dos horas | Origen autorizado en escrituras, CSP en Nginx y revocación propia o por Administrador. |
-| Semilla TOTP | Campo `mfaSecret` almacenado directamente en Usuario | Cifrar con clave custodiada fuera de BD y respaldos, restringir permisos y probar recuperación; PT03. No afirmar cifrado ya implementado. |
+| Semilla TOTP | `mfaSecret` cifrado con AES-256-GCM; clave separada en `TOTP_ENCRYPTION_KEY` | Custodiar la clave fuera de los respaldos de BD; convertir semillas existentes antes de iniciar y conservar la clave para recuperarlas; PT03. |
 | Credenciales de PostgreSQL y configuración | Variables y archivos `.env` excluidos de Git | Custodiar copia cifrada independiente, restringir acceso, rotar ante exposición y no registrar valores en logs. |
 | Transporte y origen | HTTPS local mediante Nginx; certificado autofirmado de laboratorio | Para acceso remoto, HTTPS y origen exacto antes de habilitarlo; no publicar directamente BD o backend. |
 

@@ -137,7 +137,7 @@ No se declaran los 91 controles como cumplidos. A.5.23 y A.8.30 se excluyen prel
 | A.8.21 | Seguridad de servicios de red | Sí | Servicios de conectividad y entrada deben tener requisitos claros. | Nginx y entorno por relevar | S05/S13 definir origen, TLS y responsabilidades del operador. |
 | A.8.22 | Segmentación de redes | Sí | BD y API no deben exponerse directamente al exterior. | Puertos loopback y red interna | Parcial; S05 comprobar red del despliegue real. |
 | A.8.23 | Filtrado de navegación web | Sí | La navegación del operador puede introducir amenazas. | Equipo anfitrión en alcance | S14 evaluar filtrado y medidas proporcionales, sin inventar gateway. |
-| A.8.24 | Uso de criptografía y gestión de claves | Sí | Hashes, semillas, transporte y respaldos requieren criptografía adecuada. | password.ts y configuración HTTP local | Parcial: hashes; S03/S05/S01 proteger claves, TLS y copias. |
+| A.8.24 | Uso de criptografía y gestión de claves | Sí | Hashes, semillas, transporte y respaldos requieren criptografía adecuada. | password.ts y configuración HTTP local | Parcial: hashes y semillas TOTP con AES-256-GCM; S03/S05/S01 custodiar claves y comprobar recuperación, TLS y copias. |
 | A.8.25 | Seguridad en el ciclo de desarrollo | Sí | Cambios del software necesitan incorporar seguridad. | Repo, scripts de pruebas y consigna | Parcial; S15 ciclo con revisión y evidencias. |
 | A.8.26 | Requisitos de seguridad de aplicaciones | Sí | Los RF/RNF deben traducirse a aceptación verificable. | Consigna RF-14/15/16 y RNF | S15 verificar requisitos; no atribuir cumplimiento por documentación. |
 | A.8.27 | Diseño y arquitectura seguros | Sí | Arquitectura modular necesita límites y protección de datos. | 00-arquitectura.md, guards y Compose | Parcial; S04/S05/S10 actualizar y validar arquitectura. |
@@ -168,7 +168,7 @@ No se asigna una madurez numérica por la sola existencia de documentos o funcio
 |---|---|---|---|---|---|
 | S01 | R01; A.8.13, A.5.30 | Respaldo diario cifrado externo y restauración aislada; PT01. | Alta | Administrador | 10/10/2026 |
 | S02 | R02; A.8.1, A.8.5 | Revisar sesión y CSP, revocación y acciones sensibles; PT02. | Alta | Responsable técnico | 17/10/2026 |
-| S03 | R03; A.5.17, A.8.24 | Proteger semillas y separar claves de BD y copias; PT03. | Alta | Responsable técnico y administrador | 17/10/2026 |
+| S03 | R03; A.5.17, A.8.24 | Semillas cifradas con AES-256-GCM; custodiar clave separada y probar recuperación, PT03. | Alta | Responsable técnico y administrador | 17/10/2026 |
 | S04 | R04; A.5.15/18, A.8.2/3 | Probar permisos por ruta, ámbito, relación y exportación; PT04. | Media | Responsable técnico | 17/10/2026 |
 | S05 | R05; A.8.20/21/22/24 | HTTPS, origen WebAuthn y exposición verificada antes del acceso remoto; PT05. | Media local; alta antes de publicar | Administrador | Antes del primer acceso remoto |
 | S06 | R06; A.8.6, A.8.5 | Límites de abuso y pruebas de capacidad; PT06. | Media local; alta antes de publicar | Responsable técnico | 17/10/2026 y antes de acceso remoto |

@@ -51,7 +51,7 @@ Estas filas documentan **debilidades observadas**, no CVE confirmadas ni ataques
 
 | ID | CVSS y versión | Activo afectado | Herramienta o evidencia | Descripción | Estado | Fecha detect | Fecha rem | Responsable |
 |---|---|---|---|---|---|---|---|---|
-| V-RSI-01 | No asignado; requiere evaluación del vector | RSI-A03/A04/A05/A07 | `auth.service.ts`, escritura de `mfaSecret` | Semillas TOTP almacenadas directamente en BD sin cifrado de aplicación observado. La lectura indebida de una copia podría comprometer el segundo factor. | Abierta; tratamiento PT03/R03 | Documentada 03/10/2026 | Pendiente | Responsable técnico y administrador |
+| V-RSI-01 | No asignado; requiere evaluación del vector | RSI-A03/A04/A05/A07 | `auth.service.ts`, escritura de `mfaSecret` | Semillas TOTP anteriormente sin cifrado de aplicación. Ahora se almacenan con AES-256-GCM y clave externa a la BD. | Corregida en código y BD local; custodiar clave y proteger copias anteriores, PT03/R03 | Verificada 07/10/2026 | docs/evidencias/cifrado-totp.md | Responsable técnico y administrador |
 | V-RSI-02 | No asignado; no se ha demostrado una XSS | RSI-A01/A03 | `frontend/src/shared/api/apiGet.ts` | Token Bearer en localStorage accesible a JavaScript del mismo origen. Es exposición de diseño ante ejecución de scripts, no prueba de robo de sesión. | Abierta; tratamiento PT02/R02 | Documentada 03/10/2026 | Pendiente | Responsable técnico |
 | V-RSI-03 | No asignado; debilidad operativa | RSI-A04/A05/A06 | Compose y plan de continuidad | No se acredita respaldo automático independiente ni restauración completa. El volumen persistente no cubre pérdida del anfitrión. | Abierta; tratamiento PT01/R01 | Documentada 03/10/2026 | Pendiente | Administrador de plataforma |
 | V-RSI-04 | No asignado; cobertura de trazabilidad | RSI-A03/A08 | `auth.service.ts`, `passkey.service.ts` e interceptor | Altas de usuario y algunos rechazos tempranos de autenticación sin evento explícito; cambio de rol sin valores previos/nuevos. | Abierta; ampliar cobertura y verificar PT08/R08 | Documentada 03/10/2026 | Pendiente | Responsable técnico y RSI |
@@ -92,7 +92,7 @@ No hay falsos positivos validados en este expediente. Las siguientes filas fijan
 
 | ID | Hallazgo | Justificación o comprobación requerida | Aprobado por | Fecha |
 |---|---|---|---|---|
-| V-RSI-01 | Semilla TOTP en BD | Demostrar protección efectiva y separación de claves si se alega cifrado externo o de aplicación. El hash de contraseña no cifra la semilla. | Pendiente; no descartado | Pendiente |
+| V-RSI-01 | Semilla TOTP en BD | AES-256-GCM implementado y conversión transaccional probada; la clave se configura fuera de la BD. Recuperación operativa de claves pendiente. | Corregida en la aplicación; no es un falso positivo | docs/evidencias/cifrado-totp.md |
 | V-RSI-02 | Token en localStorage | Confirmar mecanismo efectivo de sesión y controles frente a scripts. No demostrar XSS no elimina la exposición de diseño. | Pendiente; no descartado | Pendiente |
 | V-RSI-03 | Falta de respaldo independiente | Presentar copia externa, ejecución automática y restauración comprobada. Persistencia Docker no es evidencia suficiente. | Pendiente; no descartado | Pendiente |
 | V-RSI-04 | Cobertura incompleta de auditoría | Probar los flujos concretos y sus eventos sin confundir logs HTTP con auditabilidad del actor y acción. | Pendiente; no descartado | Pendiente |
