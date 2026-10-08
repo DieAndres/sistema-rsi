@@ -1,3 +1,7 @@
+beforeAll(() => {
+  process.env.TOTP_ENCRYPTION_KEY = 'ab'.repeat(32);
+});
+import { cifrarSemilla } from './totp-secret';
 import { AuthService } from './auth.service';
 
 function entorno(secret: string | null = null, confirmado = false) {
@@ -29,10 +33,12 @@ function entorno(secret: string | null = null, confirmado = false) {
 }
 
 it('solicitudes repetidas conservan el QR pendiente', async () => {
-  const { service, prisma } = entorno();
+  const { service, prisma, usuario } = entorno();
   const primero = await service.iniciarMfa('u');
   expect(await service.iniciarMfa('u')).toEqual(primero);
   expect(prisma.usuario.updateMany).toHaveBeenCalledTimes(1);
+  expect(usuario.mfaSecret).toMatch(/^v1:/);
+  expect(usuario.mfaSecret).not.toContain(primero.secret);
   const uri = new URL(primero.otpauthUri);
   expect(uri.searchParams.get('secret')).toBe(primero.secret);
 });
@@ -45,7 +51,10 @@ it('solicitudes concurrentes obtienen el mismo secreto', async () => {
   expect(a.secret).toBe(b.secret);
 });
 it('no reemplaza un factor ya confirmado', async () => {
-  const { service, prisma } = entorno('GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ', true);
+  const { service, prisma } = entorno(
+    cifrarSemilla('GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ'),
+    true,
+  );
   await expect(service.iniciarMfa('u')).rejects.toThrow('ya está activado');
   expect(prisma.usuario.updateMany).not.toHaveBeenCalled();
 });

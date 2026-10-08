@@ -1,3 +1,7 @@
+beforeAll(() => {
+  process.env.TOTP_ENCRYPTION_KEY = 'ab'.repeat(32);
+});
+import { cifrarSemilla } from '../src/auth/totp-secret';
 import { INestApplication } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
@@ -33,6 +37,18 @@ describe('Sesiones HTTP y origen autorizado', () => {
         const u = users.get(where.id)!;
         Object.assign(u, data);
         return u;
+      },
+      updateMany: async ({ where, data }: any) => {
+        const u = users.get(where.id);
+        if (
+          !u ||
+          u.mfaSecret !== where.mfaSecret ||
+          (where.mfaConfirmado !== undefined &&
+            u.mfaConfirmado !== where.mfaConfirmado)
+        )
+          return { count: 0 };
+        Object.assign(u, data);
+        return { count: 1 };
       },
       findFirst: async () => null,
     },
@@ -146,12 +162,48 @@ describe('Sesiones HTTP y origen autorizado', () => {
       .expect(401);
   });
 
+  it('configura y confirma MFA sin guardar la semilla en texto plano', async () => {
+    users.get(id)!.mfaSecret = null;
+    const login = await service.login({
+      correo: 'lector@example.com',
+      password: 'password-de-prueba',
+    });
+    const cookie = SESSION_COOKIE + '=' + login.token;
+    const setup = await request(app.getHttpServer())
+      .post('/api/v1/auth/mfa/setup')
+      .set('Cookie', cookie)
+      .set('Origin', 'https://localhost:8443')
+      .expect(201);
+    const secret = setup.body.secret;
+    expect(users.get(id)!.mfaSecret).toMatch(/^v1:/);
+    expect(users.get(id)!.mfaSecret).not.toContain(secret);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/mfa/confirm')
+      .set('Cookie', cookie)
+      .set('Origin', 'https://localhost:8443')
+      .send({ codigo: 'invalido' })
+      .expect(401);
+    const codigo = generateSync({
+      secret,
+      algorithm: 'sha1',
+      digits: 6,
+      period: 30,
+    });
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/mfa/confirm')
+      .set('Cookie', cookie)
+      .set('Origin', 'https://localhost:8443')
+      .send({ codigo })
+      .expect(201);
+    expect(users.get(id)!.mfaConfirmado).toBe(true);
+  });
+
   it('mantiene el login con contraseña y TOTP y rechaza códigos incorrectos', async () => {
     const secret = generateSecret();
     Object.assign(users.get(id)!, {
       rol: 'RSI',
       mfaConfirmado: true,
-      mfaSecret: secret,
+      mfaSecret: cifrarSemilla(secret),
     });
     const datos = {
       correo: 'lector@example.com',

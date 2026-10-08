@@ -14,6 +14,7 @@ import { verificarTotp } from './totp';
 import { hashPassword, verifyPassword } from './password';
 import { ENTIDADES_AUDITABLES } from './auditoria.interceptor';
 import { SESSION_TTL_MS } from './session-http';
+import { cifrarSemilla, descifrarSemilla } from './totp-secret';
 const ROLES = new Set(['ADMINISTRADOR', 'RSI', 'DUENO_UNIDAD', 'LECTOR']);
 const ROLES_CON_TRABAJADOR = new Set(['DUENO_UNIDAD', 'LECTOR']);
 
@@ -84,7 +85,12 @@ export class AuthService {
     }
     const mfaObligatorio = ['ADMINISTRADOR', 'RSI'].includes(usuario.rol);
     if (usuario.mfaConfirmado) {
-      if (!verificarTotp(usuario.mfaSecret, datos.codigoMfa)) {
+      if (
+        !verificarTotp(
+          usuario.mfaSecret ? descifrarSemilla(usuario.mfaSecret) : null,
+          datos.codigoMfa,
+        )
+      ) {
         await this.registrarAuditoria(
           'MFA_FAILURE',
           usuario.id,
@@ -130,7 +136,7 @@ export class AuthService {
       // La condición evita que solicitudes simultáneas creen dos QR diferentes.
       await this.prisma.usuario.updateMany({
         where: { id: usuarioId, mfaSecret: null, mfaConfirmado: false },
-        data: { mfaSecret: generateSecret() },
+        data: { mfaSecret: cifrarSemilla(generateSecret()) },
       });
     }
     const pendiente = await this.prisma.usuario.findUnique({
@@ -141,7 +147,7 @@ export class AuthService {
         'La configuración MFA cambió. Recargá la página.',
       );
     }
-    const secret = pendiente.mfaSecret;
+    const secret = descifrarSemilla(pendiente.mfaSecret);
     return {
       secret,
       otpauthUri: generateURI({
@@ -159,7 +165,13 @@ export class AuthService {
     const usuario = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
     });
-    if (!usuario?.mfaSecret || !verificarTotp(usuario.mfaSecret, codigo)) {
+    if (
+      !usuario?.mfaSecret ||
+      !verificarTotp(
+        usuario.mfaSecret ? descifrarSemilla(usuario.mfaSecret) : null,
+        codigo,
+      )
+    ) {
       throw new UnauthorizedException('El código MFA es inválido.');
     }
     const activacion = await this.prisma.usuario.updateMany({

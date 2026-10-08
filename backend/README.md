@@ -232,3 +232,15 @@ La migración `20261001190000_historial_incidentes` requiere `prisma migrate dep
 El acceso usa cookie HttpOnly, Secure y SameSite=Strict, con vencimiento máximo de dos horas. Login no devuelve tokens y la API ya no acepta Bearer. Para escrituras, enviar las cookies y la cabecera Origin del sitio autorizado. El navegador la envía automáticamente. Configurar SESSION_ALLOWED_ORIGINS para el origen real; solicitudes sin Origin o con un origen ajeno se rechazan con 403.
 
 POST /api/v1/auth/sesiones/revocar cierra las sesiones propias. Administrador puede usar POST /api/v1/auth/usuarios/:id/sesiones/revocar. Cambios de rol, vínculo o estado revocan sesiones automáticamente. [Pruebas y límites](../docs/evidencias/sesiones-cookie-csrf.md).
+## Cifrado de semillas TOTP
+
+Las semillas se guardan en `Usuario.mfaSecret` con AES-256-GCM. La aplicación las descifra únicamente para configurar o verificar TOTP. No se utiliza hash porque la verificación necesita recuperar la semilla original.
+
+Antes de arrancar esta versión:
+
+1. Detener el backend y respaldar la base de datos.
+2. Definir `TOTP_ENCRYPTION_KEY` en `backend/.env`. Generar una clave una sola vez con `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`. No subirla al repositorio ni compartirla en evidencias.
+3. Desde `backend`, ejecutar `npm run migrar:totp` con la conexión a la BD correspondiente.
+4. Iniciar el backend usando la misma clave.
+
+La conversión es transaccional y se puede repetir: cifra las semillas antiguas y comprueba las ya cifradas. No modifica el factor del autenticador ni requiere otro QR. El backend rechaza semillas sin convertir y no arranca sin una clave válida. Custodiar una copia de la clave separada de la BD; perderla impide recuperar las semillas. Para cambiarla se necesita descifrar y volver a cifrar los datos; no basta con reemplazar la variable. Los respaldos anteriores pueden contener semillas sin cifrar y deben seguir protegidos.
