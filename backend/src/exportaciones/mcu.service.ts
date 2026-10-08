@@ -5,6 +5,12 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CONTROLES_MCU } from './controles-mcu';
+import { CONTROLES_MCU_AGESIC } from './controles-mcu-agesic';
+
+const FUNCIONES_MCU: Record<string, string> = {
+  Gobernar: 'GV', Identificar: 'ID', Proteger: 'PR',
+  Detectar: 'DE', Responder: 'RS', Recuperar: 'RC',
+};
 function celda(valor: string | null | undefined) {
   return (valor ?? '')
     .replace(/&/g, '&amp;')
@@ -29,12 +35,14 @@ export class McuService {
   }
 
   async listar(organizacionId: string) {
-    await this.organizacion(organizacionId);
+    const organizacion = await this.organizacion(organizacionId);
     const evaluaciones = await this.prisma.evaluacionMcu.findMany({
       where: { organizacionId },
     });
-    return CONTROLES_MCU.map((control) => ({
+    return CONTROLES_MCU_AGESIC.filter((control) => control.perfiles.includes(organizacion.perfilMcu)).map((control) => ({
       ...control,
+      funcion: control.funciones[0],
+      codigo: FUNCIONES_MCU[control.funciones[0]],
       evaluacion:
         evaluaciones.find((e) => e.controlId === control.controlId) ?? null,
     }));
@@ -45,9 +53,9 @@ export class McuService {
     controlId: string,
     datos: Record<string, unknown>,
   ) {
-    await this.organizacion(organizacionId);
-    if (!CONTROLES_MCU.some((c) => c.controlId === controlId)) {
-      throw new BadRequestException('Control MCU no válido');
+    const organizacion = await this.organizacion(organizacionId);
+    if (!CONTROLES_MCU_AGESIC.some((c) => c.controlId === controlId && c.perfiles.includes(organizacion.perfilMcu))) {
+      throw new BadRequestException('Control MCU no válido para el perfil de la organización');
     }
     if (!datos || typeof datos !== 'object' || Array.isArray(datos)) {
       throw new BadRequestException('Evaluación no válida');
@@ -101,9 +109,13 @@ export class McuService {
     const contenido = [
       '# MCU 5.0 — Reporte por funciones',
       `Organización: ${celda(organizacion.nombre)}`,
-      'Perfil objetivo de la tarea: Avanzado',
+      `Perfil objetivo de la organización: ${celda(organizacion.perfilMcu)}`,
+      'Perfil requerido para la entrega del curso: Avanzado.',
       `Fecha: ${new Date().toISOString().slice(0, 10)}`,
-      'Catálogo de apoyo del curso (47 controles). Los IDs son internos y no sustituyen los identificadores oficiales AGESIC. Las respuestas y referencias requieren revisión; una justificación N.A. registrada no implica aceptación.',
+      `Línea base AGESIC: ${controles.length} controles únicos marcados como Sí en la planilla del perfil ${celda(organizacion.perfilMcu)}.`,
+      'Fuente: https://www.gub.uy/agencia-gobierno-electronico-sociedad-informacion-conocimiento/comunicacion/publicaciones/marco-ciberseguridad-50',
+      'Un control puede estar asociado a varias funciones y aparecer en más de una sección. Las cantidades por función no deben sumarse para obtener el total único. Este reporte muestra la línea base, no todos los controles del marco ni una certificación de cumplimiento.',
+      'Las respuestas y referencias requieren revisión; una justificación N.A. registrada no implica aceptación.',
       '',
     ];
     for (const funcion of [
@@ -114,11 +126,11 @@ export class McuService {
       'Responder',
       'Recuperar',
     ]) {
-      const grupo = controles.filter((c) => c.funcion === funcion);
+      const grupo = controles.filter((c) => c.funciones.includes(funcion));
       contenido.push(
-        `## ${grupo[0].codigo} — ${funcion}`,
+        `## ${FUNCIONES_MCU[funcion]} — ${funcion}`,
         `Controles: ${grupo.length}. Pendientes: ${grupo.filter((c) => !c.evaluacion?.respuesta).length}.`,
-        '| ID interno | Resultado/Control esperado | Aplica (Sí/No/N.A.) | Justificación si N.A. | Evidencia registrada | Cómo se demuestra |',
+        '| ID AGESIC | Control esperado | Aplica (Sí/No/N.A.) | Justificación si N.A. | Evidencia registrada | Cómo se demuestra |',
         '|---|---|---|---|---|---|',
       );
       for (const c of grupo) {
@@ -136,6 +148,17 @@ export class McuService {
         );
       }
       contenido.push('');
+    }
+    const anteriores = await this.prisma.evaluacionMcu.findMany({ where: { organizacionId } });
+    const legado = anteriores.filter((e) => CONTROLES_MCU.some((c) => c.controlId === e.controlId));
+    if (legado.length) {
+      contenido.push('## Antecedentes del catálogo de apoyo del curso',
+        'Evaluaciones conservadas de los controles internos anteriores. No se trasladan a controles oficiales ni se cuentan como evaluación de la línea base seleccionada.',
+        '| ID interno | Control de apoyo | Respuesta | Justificación | Evidencia | Demostración |', '|---|---|---|---|---|---|');
+      for (const e of legado) {
+        const control = CONTROLES_MCU.find((c) => c.controlId === e.controlId);
+        contenido.push(`| ${celda(e.controlId)} | ${celda(control?.tema)} | ${celda(e.respuesta)} | ${celda(e.justificacion)} | ${celda(e.evidencia)} | ${celda(e.demostracion)} |`);
+      }
     }
     return contenido.join('\n');
   }

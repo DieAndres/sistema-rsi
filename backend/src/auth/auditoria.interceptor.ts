@@ -30,6 +30,8 @@ export const ENTIDADES_AUDITABLES = {
   EVALUACION_MCU: 'evaluacionMcu',
   EVALUACION_BCU: 'evaluacionBcu',
   EVALUACION_COBIT: 'evaluacionCobit',
+  BASE_PERSONAL: 'basePersonal',
+  NOTIFICACION_URCDP: 'notificacionUrcdp',
 } as const;
 const recursos: Record<string, keyof typeof ENTIDADES_AUDITABLES> = {
   unidades: 'UNIDAD',
@@ -52,6 +54,8 @@ const recursos: Record<string, keyof typeof ENTIDADES_AUDITABLES> = {
   'mcu-controles': 'EVALUACION_MCU',
   'bcu-controles': 'EVALUACION_BCU',
   'cobit-procesos': 'EVALUACION_COBIT',
+  'bases-personales': 'BASE_PERSONAL',
+  'notificaciones-urcdp': 'NOTIFICACION_URCDP',
 };
 // Solo campos escalares persistidos: excluye relaciones, respuestas calculadas y cuerpos enviados.
 function valores(
@@ -72,6 +76,10 @@ function valores(
   const resultado = Object.fromEntries(
     campos.filter((c) => c in datos).map((c) => [c, datos[c]]),
   );
+  if (entidad === 'BASE_PERSONAL' || entidad === 'NOTIFICACION_URCDP') {
+    delete resultado.datos;
+    delete resultado.nombre;
+  }
   if (entidad === 'ACTIVO' && Array.isArray(datos.procesos)) {
     resultado.procesoIds = (
       datos.procesos as {
@@ -124,6 +132,9 @@ export class AuditoriaInterceptor implements NestInterceptor {
         'cobit',
         'inventario-activos',
         'politica-seguridad',
+        'registro-urcdp',
+        'medidas-urcdp',
+        'brecha-urcdp',
       ].includes(partes.at(-1)!);
     if (
       !exportacion &&
@@ -160,6 +171,9 @@ export class AuditoriaInterceptor implements NestInterceptor {
             let anterior: unknown = null;
             if (!exportacion && accion !== 'CREATE') {
               let where: Record<string, unknown> = { id: request.params.id };
+              if (entidad === 'BASE_PERSONAL' || entidad === 'NOTIFICACION_URCDP') {
+                where = { id: request.params.fichaId };
+              }
               if (entidad === 'EVALUACION_COBIT') {
                 where = {
                   organizacionId_procesoId_controlId: {

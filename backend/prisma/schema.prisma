@@ -24,6 +24,7 @@ model Organizacion {
   id                String               @id @default(uuid())
   nombre            String
   alcanceSgsi       String?
+  perfilMcu        String               @default("Avanzado")
   unidades          UnidadOrganizativa[]
   politicas         Politica[]
   evidencias        Evidencia[]
@@ -35,6 +36,8 @@ model Organizacion {
   evaluacionesMcu   EvaluacionMcu[]
   evaluacionesBcu   EvaluacionBcu[]
   evaluacionesCobit EvaluacionCobit[]
+  basesPersonales   BasePersonal[]
+  notificacionesUrcdp NotificacionUrcdp[]
 
   @@map("organizaciones")
 }
@@ -253,10 +256,41 @@ model Incidente {
   responsable         Trabajador?       @relation("ResponsableIncidente", fields: [responsableId], references: [id])
   evidencias          Evidencia[]
   historial           AccionIncidente[]
+  notificacionesUrcdp NotificacionUrcdp[]
 
   @@index([activoId])
   @@index([responsableId])
   @@map("incidentes")
+}
+
+model BasePersonal {
+  id String @id @default(uuid())
+  organizacionId String
+  nombre String
+  datos Json
+  revision Int @default(1)
+  actualizadoEn DateTime @updatedAt
+  organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Restrict)
+  notificaciones NotificacionUrcdp[]
+  @@index([organizacionId])
+  @@map("bases_personales")
+}
+
+model NotificacionUrcdp {
+  id String @id @default(uuid())
+  organizacionId String
+  baseId String
+  incidenteId String
+  datos Json
+  revision Int @default(1)
+  actualizadoEn DateTime @updatedAt
+  organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Restrict)
+  base BasePersonal @relation(fields: [baseId], references: [id], onDelete: Restrict)
+  incidente Incidente @relation(fields: [incidenteId], references: [id], onDelete: Restrict)
+  @@index([organizacionId])
+  @@index([baseId])
+  @@index([incidenteId])
+  @@map("notificaciones_urcdp")
 }
 
 model Proceso {

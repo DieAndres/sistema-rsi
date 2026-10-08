@@ -31,7 +31,7 @@ export class OrganizacionService {
     }
     const alcanceSgsi = this.validarAlcanceSgsi(datos.alcanceSgsi);
     return this.prisma.organizacion.create({
-      data: { nombre, alcanceSgsi },
+      data: { nombre, alcanceSgsi, perfilMcu: this.validarPerfilMcu(datos.perfilMcu === undefined ? 'Avanzado' : datos.perfilMcu) },
     });
   }
 
@@ -77,6 +77,9 @@ export class OrganizacionService {
       );
     }
     const datosActualizados: Prisma.OrganizacionUncheckedUpdateInput = {};
+    if (datos.perfilMcu !== undefined) {
+      datosActualizados.perfilMcu = this.validarPerfilMcu(datos.perfilMcu);
+    }
     if (nombre !== undefined) {
       datosActualizados.nombre = nombre;
     }
@@ -457,6 +460,13 @@ export class OrganizacionService {
       return null;
     }
     return this.prisma.asignacionRaci.delete({ where: { id } });
+  }
+
+  private validarPerfilMcu(valor: unknown): string {
+    if (typeof valor !== 'string' || !['Básico', 'Estándar', 'Avanzado'].includes(valor)) {
+      throw new BadRequestException('El perfil MCU debe ser Básico, Estándar o Avanzado');
+    }
+    return valor;
   }
 
   private validarAlcanceSgsi(valor: string | null | undefined) {

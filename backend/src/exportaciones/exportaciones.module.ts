@@ -9,6 +9,8 @@ import { McuController } from './mcu.controller';
 import { McuService } from './mcu.service';
 import { BcuService } from './bcu.service';
 import { BcuController } from './bcu.controller';
+import { UrcdpController } from './urcdp.controller';
+import { UrcdpService } from './urcdp.service';
 
 @Module({
   controllers: [
@@ -16,6 +18,7 @@ import { BcuController } from './bcu.controller';
     McuController,
     BcuController,
     CobitController,
+    UrcdpController,
   ],
   providers: [
     ExportacionesService,
@@ -23,6 +26,7 @@ import { BcuController } from './bcu.controller';
     McuService,
     BcuService,
     CobitService,
+    UrcdpService,
     PrismaService,
   ],
 })
