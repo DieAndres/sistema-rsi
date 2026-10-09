@@ -149,6 +149,25 @@ implementación ni madurez basándose en funcionalidades de la aplicación.
 
 ## Comprobaciones
 
+### Importación CSV de seguridad
+
+Administrador y RSI pueden importar activos, vulnerabilidades, riesgos e incidentes desde el botón **Importar CSV** de cada sección. Se admite CSV UTF-8 (con o sin BOM), separado por coma o punto y coma, con encabezados de la plantilla, hasta 500 registros y 64 KB.
+
+Endpoints bajo `/api/v1/seguridad/importaciones/{tipo}`, donde `tipo` es `activos`, `vulnerabilidades`, `riesgos` o `incidentes`:
+
+- `GET /plantilla`: devuelve las columnas admitidas.
+- `POST /validar`: recibe `{ organizacionId, csv }` y devuelve las filas, sus errores y el total válido. No guarda datos ni eventos de creación.
+- `POST /confirmar`: recibe el mismo cuerpo, vuelve a validar y crea el lote completo. Cada registro genera un evento `CREATE` con `origen: IMPORTACION_CSV` en la misma transacción. Un fallo de creación o auditoría revierte toda la carga.
+
+Las referencias deben existir en la organización seleccionada. El responsable de un activo debe pertenecer a su unidad. Se rechazan nombres/títulos repetidos, ignorando mayúsculas, para la misma unidad (activos) o el mismo activo (las otras secciones), tanto en el archivo como en la base. No actualiza registros existentes. Los incidentes comienzan en ABIERTO y registran la detección con el usuario autenticado. La asociación de activos a procesos se administra luego desde la edición.
+
+Pruebas específicas:
+
+```powershell
+npm.cmd run test -- --runInBand importacion-csv
+npm.cmd run test:e2e -- --runInBand importacion-csv
+```
+
 ### Auditoría de gestión
 
 Las modificaciones de los módulos funcionales y las exportaciones se guardan

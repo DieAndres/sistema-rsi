@@ -109,6 +109,9 @@ export class AuditoriaInterceptor implements NestInterceptor {
     >();
     const partes = request.path.split('/').filter(Boolean).slice(2);
     const modulo = partes[0];
+    const importacion = modulo === 'seguridad' && partes[1] === 'importaciones';
+    // La previsualización solo consulta; no genera eventos de creación.
+    if (importacion && partes.at(-1) === 'validar') return next.handle();
     if (
       !request.user ||
       ![
@@ -171,7 +174,10 @@ export class AuditoriaInterceptor implements NestInterceptor {
             let anterior: unknown = null;
             if (!exportacion && accion !== 'CREATE') {
               let where: Record<string, unknown> = { id: request.params.id };
-              if (entidad === 'BASE_PERSONAL' || entidad === 'NOTIFICACION_URCDP') {
+              if (
+                entidad === 'BASE_PERSONAL' ||
+                entidad === 'NOTIFICACION_URCDP'
+              ) {
                 where = { id: request.params.fichaId };
               }
               if (entidad === 'EVALUACION_COBIT') {
@@ -207,6 +213,32 @@ export class AuditoriaInterceptor implements NestInterceptor {
               });
             }
             const respuesta: unknown = await lastValueFrom(next.handle());
+            if (
+              importacion &&
+              partes.at(-1) === 'confirmar' &&
+              Array.isArray(respuesta)
+            ) {
+              for (const registro of respuesta as { id: string }[]) {
+                const nuevo = valores(entidad, registro);
+                await tx.auditEvent.create({
+                  data: {
+                    eventType: `${entidad}_CREATE`,
+                    entityType: entidad,
+                    entityId: registro.id,
+                    action: 'CREATE',
+                    actorUserId,
+                    result: 'EXITOSO',
+                    metadata: {
+                      origen: 'IMPORTACION_CSV',
+                      campos: Object.keys(nuevo ?? {}),
+                      anterior: null,
+                      nuevo,
+                    },
+                  },
+                });
+              }
+              return respuesta;
+            }
             const antes = valores(entidad, anterior);
             const despues =
               exportacion || accion === 'DELETE'
@@ -264,7 +296,7 @@ export class AuditoriaInterceptor implements NestInterceptor {
           }),
         {
           isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-          timeout: 15000,
+          timeout: importacion ? 60000 : 15000,
         },
       ),
     );

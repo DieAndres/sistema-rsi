@@ -1,0 +1,12 @@
+.asistente-lanzador { display: flex; gap: .75rem; flex-wrap: wrap; }
+.importacion-dialogo { width: min(960px, calc(100vw - 2rem)); }
+.importacion-acciones { display: flex; gap: .75rem; flex-wrap: wrap; margin: 1rem 0; }
+.importacion-archivo { display: grid; gap: .5rem; margin: 1rem 0; }
+.importacion-ayuda { font-size: .9rem; }
+.importacion-tabla { max-height: 45vh; overflow: auto; }
+.importacion-tabla table { width: 100%; border-collapse: collapse; }
+.importacion-tabla th, .importacion-tabla td { padding: .75rem; text-align: left; vertical-align: top; border-bottom: 1px solid #d5dbe4; }
+.importacion-tabla dl { margin: 0; }
+.importacion-tabla dl div { display: flex; gap: .5rem; flex-wrap: wrap; }
+.importacion-tabla dt { font-weight: 600; }
+.importacion-tabla dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
